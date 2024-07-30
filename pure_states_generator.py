@@ -52,17 +52,17 @@ def generate_qasm(binary_string, file_path):
         file.write(''.join(qasm_code))
 
 
-def pure_states_generator(n_qbits, n_input):
-    if n_input > 2 ** n_qbits:
+def pure_states_generator(n_qbits, n_inputs):
+    if n_inputs > 2 ** n_qbits:
         print("It is impossible to generate more than 2^n_qubits different pure states.")
         sys.exit(1)
 
-    dir_path = "data/generated_inputs/inputs_" + str(n_qbits) + "_qubits/"
-    files = os.listdir(dir_path)
-    num_files = len(files)
+    dir_path = "data/pure_state_inputs/inputs_" + str(n_qbits) + "_qubits/"
+    os.makedirs(dir_path, exist_ok=True)
     random_pure_states = []
+    num_files = 0
 
-    while len(random_pure_states) < n_input:
+    while len(random_pure_states) < n_inputs:
         random_input = generate_random_pure_state(n_qbits)
         if random_input not in random_pure_states:
             random_pure_states.append(random_input)
@@ -72,3 +72,16 @@ def pure_states_generator(n_qbits, n_input):
             num_files = num_files + 1
 
     return random_pure_states
+
+
+if __name__ == "__main__":
+
+    for n_qubits in range(2, 11):
+        max_pure_states = 2 ** n_qubits
+        print(max_pure_states)
+        n_inputs = int(max_pure_states / 2)
+
+        if n_inputs > 10:
+            n_inputs = 10
+
+        pure_states_generator(n_qubits, n_inputs)
