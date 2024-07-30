@@ -1,3 +1,6 @@
+import os
+import sys
+
 from qiskit import QuantumCircuit
 from qiskit_aer import AerSimulator
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
@@ -30,12 +33,42 @@ def generate_random_pure_state(n_qbits):
     return measurement_result
 
 
+def generate_qasm(binary_string, file_path):
+    num_qubits = len(binary_string)
+    qasm_code = [
+        "OPENQASM 2.0;\n",
+        "include \"qelib1.inc\";\n",
+        f"qreg q0[{num_qubits}];\n",
+        f"creg c0[{num_qubits}];\n"
+    ]
+
+    # Apply X gates based on the binary string
+    for i, bit in enumerate(binary_string):
+        if bit == '1':
+            qasm_code.append(f"x q0[{i}];\n")
+
+    # Write the QASM code to the file
+    with open(file_path, "w") as file:
+        file.write(''.join(qasm_code))
+
+
 def pure_states_generator(n_qbits, n_input):
+    if n_input > 2 ** n_qbits:
+        print("It is impossible to generate more than 2^n_qubits different pure states.")
+        sys.exit(1)
+
+    dir_path = "data/generated_inputs/inputs_" + str(n_qbits) + "_qubits/"
+    files = os.listdir(dir_path)
+    num_files = len(files)
     random_pure_states = []
 
     while len(random_pure_states) < n_input:
         random_input = generate_random_pure_state(n_qbits)
         if random_input not in random_pure_states:
             random_pure_states.append(random_input)
+            file_name = "input_" + str(num_files)
+            file_path = dir_path + file_name + ".qasm"
+            generate_qasm(random_input, file_path)
+            num_files = num_files + 1
 
     return random_pure_states
