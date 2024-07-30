@@ -19,24 +19,6 @@ noise_model = NoiseModel.from_backend(noisy_backend)
 noisy_simulator = AerSimulator(noise_model=noise_model)
 
 
-def create_inputs(QubitNum):
-    inputs = ("",)
-    x = 0
-    while x < 2 ** QubitNum:
-        binariInput = str(bin(x))
-        binariInput = binariInput[2:len(binariInput)]
-        if len(binariInput) < QubitNum:
-            y = len(binariInput)
-            tmp = ""
-            while y < QubitNum:
-                tmp = tmp + str(0)
-                y = y + 1
-            binariInput = tmp + binariInput
-        inputs = inputs + (binariInput,)
-        x = x + 1
-    return inputs[1:len(inputs)]
-
-
 def circuit_initialization(qc, input):
     initialization = QuantumCircuit(qc.num_qubits)
     x = 0
@@ -87,37 +69,19 @@ def final_density_matrix(qc_init):
 
     return ideal_dm, noisy_dm
 
-def execute_files_quratest_inputs(qc, filename, inputs):
+
+def execute_inputs(qc, filename, input_type, inputs):
     df = pd.DataFrame(
         columns=['Name', 'Input', 'Ideal_output_distribution', 'Ideal_density_matrix', 'Noisy_output_distribution',
                  'Noisy_density_matrix'])
     for x, input_qc in enumerate(inputs):
-
         qc_init = input_qc.copy()
         qc_init = qc_init.compose(qc)
         ideal_out_dist, noisy_out_dist = output_distribution(qc_init)
 
         ideal_dm, noisy_dm = final_density_matrix(qc_init)
 
-        new_line = {'Name': filename, 'Input': f'Quratest_{x}', 'Ideal_output_distribution': ideal_out_dist, 'Ideal_density_matrix': ideal_dm, 'Noisy_output_distribution': noisy_out_dist, 'Noisy_density_matrix': noisy_dm}
-        new_df = pd.DataFrame.from_dict(new_line, orient='index').T
-        df = pd.concat([df, new_df], ignore_index=True)
-
-    return df
-
-def execute_file_pure_state(qc, filename):
-    df = pd.DataFrame(
-        columns=['Name', 'Input', 'Ideal_output_distribution', 'Ideal_density_matrix', 'Noisy_output_distribution',
-                 'Noisy_density_matrix'])
-
-    inputs = create_inputs(qc.num_qubits)
-
-    for inp in inputs:
-        qc_init = circuit_initialization(qc, inp)
-        ideal_out_dist, noisy_out_dist = output_distribution(qc_init)
-        ideal_dm, noisy_dm = final_density_matrix(qc_init)
-
-        new_line = {'Name': filename, 'Input': inp, 'Ideal_output_distribution': ideal_out_dist,
+        new_line = {'Name': filename, 'Input': f'{input_type}_{x}', 'Ideal_output_distribution': ideal_out_dist,
                     'Ideal_density_matrix': ideal_dm, 'Noisy_output_distribution': noisy_out_dist,
                     'Noisy_density_matrix': noisy_dm}
         new_df = pd.DataFrame.from_dict(new_line, orient='index').T
@@ -126,8 +90,13 @@ def execute_file_pure_state(qc, filename):
     return df
 
 
-def getQuratestInputs(num_qubits):
-    folder = f'data/generated_inputs/inputs_{num_qubits}_qubits'
+def get_inputs(pure_state, num_qubits):
+
+    if pure_state:
+        folder = f'data/pure_state_inputs/inputs_{num_qubits}_qubits'
+    else:
+        folder = f'data/generated_inputs/inputs_{num_qubits}_qubits'
+
     inputs = []
     for filename in os.listdir(folder):
         # Check if the filename has the .qasm extension
@@ -137,6 +106,7 @@ def getQuratestInputs(num_qubits):
             inputs.append(input_qc)
 
     return inputs
+
 
 def process_file(filepath, base_input_dir, base_output_dir):
     if not filepath.endswith('.qasm'):
@@ -157,10 +127,11 @@ def process_file(filepath, base_input_dir, base_output_dir):
     try:
         # Execute the file and get the result as a DataFrame
         qc = QuantumCircuit.from_qasm_file(filepath)
-        
-        quratest_inputs = getQuratestInputs(qc.num_qubits)
-        results_pure_state = execute_file_pure_state(qc, filepath)
-        results_quratest = execute_files_quratest_inputs(qc, filepath, quratest_inputs)
+
+        pure_state_inputs = get_inputs(True, qc.num_qubits)
+        results_pure_state = execute_inputs(qc, filepath, "PureState", pure_state_inputs)
+        quratest_inputs = get_inputs(False, qc.num_qubits)
+        results_quratest = execute_inputs(qc, filepath, "Quratest", quratest_inputs)
         result_df = pd.concat([results_pure_state, results_quratest], ignore_index=True)
 
         # Ensure the output directory exists
