@@ -78,7 +78,6 @@ if __name__ == "__main__":
 
     for n_qubits in range(2, 11):
         max_pure_states = 2 ** n_qubits
-        print(max_pure_states)
         n_inputs = int(max_pure_states / 2)
 
         if n_inputs > 10:
