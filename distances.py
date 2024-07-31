@@ -1,5 +1,7 @@
 import json
 import ast
+import re
+
 import numpy as np
 import pandas as pd
 from qiskit.quantum_info import DensityMatrix, state_fidelity, hellinger_distance, Statevector
@@ -65,24 +67,44 @@ def compareChisquare(oracle_output, mutant_output):
 
     return result
 
+# Step 3: Parse the matrix strings to convert them into NumPy arrays
+def parse_density_matrix(matrix_str):
+    # Extract the actual matrix string
+    start = matrix_str.find('[')
+    end = matrix_str.rfind(']') + 1
+    matrix_str = matrix_str[start:end]
 
-def fidelityCalc(stateVector1, stateVector2):
-    stateVector1 = ast.literal_eval(stateVector1)
-    stateVector2 = ast.literal_eval(stateVector2)
-    stateVector1 = DensityMatrix(stateVector1)
-    stateVector2 = DensityMatrix(stateVector2)
+    # Convert the string representation of the matrix to a list of lists
+    matrix_list = ast.literal_eval(matrix_str)
 
-    fidelity = state_fidelity(stateVector1, stateVector2)
+    # Convert the list of lists to a NumPy array
+    matrix_array = np.array(matrix_list)
+
+    density_matrix = DensityMatrix(matrix_array)
+
+    return density_matrix
+
+def clean_string(input_string):
+    # Remove line jumps and carriage returns
+    cleaned_string = input_string.replace('\n', ' ').replace('\r', ' ')
+
+    # Split the string by spaces and join back to remove extra spaces
+    cleaned_string = ' '.join(cleaned_string.split())
+
+    return cleaned_string
+
+def fidelityCalc(density_matrix_str1, density_matrix_str2):
+    density_matrix1 = parse_density_matrix(density_matrix_str1)
+    density_matrix2 = parse_density_matrix(density_matrix_str2)
+    fidelity = state_fidelity(density_matrix1, density_matrix2)
 
     return fidelity
 
-def traceDist(stateVector1, stateVector2):
-    stateVector1 = ast.literal_eval(stateVector1)
-    stateVector2 = ast.literal_eval(stateVector2)
-    stateVector1 = DensityMatrix(stateVector1)
-    stateVector2 = DensityMatrix(stateVector2)
+def traceDist(density_matrix_str1, density_matrix_str2):
+    density_matrix1 = parse_density_matrix(density_matrix_str1)
+    density_matrix2 = parse_density_matrix(density_matrix_str2)
 
-    dist = np.abs(stateVector1-stateVector2).trace()/2
+    dist = np.abs(density_matrix1-density_matrix2).trace()/2
 
     return dist
 

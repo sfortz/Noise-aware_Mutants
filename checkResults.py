@@ -1,3 +1,5 @@
+import os
+import re
 import tkinter as tk
 from tkinter import filedialog
 import pandas as pd
@@ -5,31 +7,14 @@ import pandas as pd
 from distances import fidelityCalc, traceDist, getHellinger, compareChisquare
 
 
-def select_mutants():
-    root = tk.Tk()
-    root.withdraw()  # Hide the main window
-    file_paths = filedialog.askopenfilenames(title="Select mutants results CSV", filetypes=[("CSV files", "*.csv")])
-    return file_paths
-
-def select_oracle():
-    root = tk.Tk()
-    root.withdraw()  # Hide the main window
-    oracle_path = filedialog.askopenfilename(title="Select oracle CSV", filetypes=[("CSV files", "*.csv")])
-    oracle_df = pd.read_csv(oracle_path)
-    return oracle_df
-
-
-def load_and_merge_files(file_paths):
-    # Load the first file into a DataFrame
-    if not file_paths:
-        return None
-
-    merged_df = pd.read_csv(file_paths[0])
-
-    # Iterate through the remaining files and merge them
-    for file_path in file_paths[1:]:
-        df = pd.read_csv(file_path)
-        merged_df = pd.concat([merged_df, df], ignore_index=True)
+def load_and_merge_files(folder):
+    merged_df = pd.DataFrame()
+    # Iterate through the folder
+    for filename in os.listdir(folder):
+        if filename.endswith('.csv'):
+            file_path = os.path.join(folder, filename)
+            df = pd.read_csv(file_path)
+            merged_df = pd.concat([merged_df, df], ignore_index=True)
 
     return merged_df
 
@@ -67,13 +52,13 @@ def checkResults(oracle_df, mutants_df):
             mutant_output = row.Ideal_output_distribution
             noisy_hellinger = getHellinger(oracle_output, mutant_output)
 
-            oracle_output = oracle_df.at[index, 'Ideal_statevector']
-            mutant_output = row.Ideal_statevector
+            oracle_output = oracle_df.at[index, 'Ideal_density_matrix']
+            mutant_output = row.Ideal_density_matrix
             ideal_fidelity = fidelityCalc(oracle_output, mutant_output)
             ideal_trace = traceDist(oracle_output,mutant_output)
 
-            oracle_output = oracle_df.at[index, 'Noisy_statevector']
-            mutant_output = row.Noisy_statevector
+            oracle_output = oracle_df.at[index, 'Noisy_density_matrix']
+            mutant_output = row.Noisy_density_matrix
             noisy_fidelity = fidelityCalc(oracle_output, mutant_output)
             noisy_trace = traceDist(oracle_output, mutant_output)
 
@@ -109,18 +94,23 @@ def checkResults(oracle_df, mutants_df):
 
 
 def main():
-    mutants_paths = select_mutants()
-    if not mutants_paths:
-        print("No files selected.")
-        return
-    mutants_df = load_and_merge_files(mutants_paths)
+    origin_path = 'exec/origin_qc'
+    all_mutants = 'exec/selected_mutant_qc'
 
-    oracle_df = select_oracle()
-
-    results_df = checkResults(oracle_df, mutants_df)
-    results_df.to_csv('results_ghz.csv')
-
-
+    # Iterate through the folder
+    for filename in os.listdir(origin_path):
+        if filename.endswith('.csv'):
+            file_path = os.path.join(origin_path, filename)
+            # Pattern to match any of the substrings
+            pattern = r"indep_qiskit_|_output|.csv"
+            # Remove the substrings
+            circuit_name = re.sub(pattern, "", filename)
+            oracle_df = pd.read_csv(file_path)
+            mutants_path = f'{all_mutants}/mutants_{circuit_name}'
+            mutants_df = load_and_merge_files(mutants_path)
+            print(oracle_df)
+            results_df = checkResults(oracle_df, mutants_df)
+            results_df.to_csv(f'results/results_{circuit_name}.csv')
 
 if __name__ == "__main__":
     main()
