@@ -67,6 +67,7 @@ def compareChisquare(oracle_output, mutant_output):
 
     return result
 
+
 # Step 3: Parse the matrix strings to convert them into NumPy arrays
 def parse_density_matrix(matrix_str):
     # Extract the actual matrix string
@@ -81,22 +82,14 @@ def parse_density_matrix(matrix_str):
     matrix_array = np.array(matrix_list)
 
     density_matrix = DensityMatrix(matrix_array)
-
     return density_matrix
 
-def clean_string(input_string):
-    # Remove line jumps and carriage returns
-    cleaned_string = input_string.replace('\n', ' ').replace('\r', ' ')
-
-    # Split the string by spaces and join back to remove extra spaces
-    cleaned_string = ' '.join(cleaned_string.split())
-
-    return cleaned_string
 
 def fidelityCalc(density_matrix_str1, density_matrix_str2):
+
     density_matrix1 = parse_density_matrix(density_matrix_str1)
     density_matrix2 = parse_density_matrix(density_matrix_str2)
-    fidelity = state_fidelity(density_matrix1, density_matrix2)
+    fidelity = state_fidelity(density_matrix1, density_matrix2, validate=False)
 
     return fidelity
 

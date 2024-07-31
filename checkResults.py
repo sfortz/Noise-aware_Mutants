@@ -1,8 +1,8 @@
 import os
 import re
-import tkinter as tk
-from tkinter import filedialog
 import pandas as pd
+from tqdm import tqdm
+
 
 from distances import fidelityCalc, traceDist, getHellinger, compareChisquare
 
@@ -98,7 +98,7 @@ def main():
     all_mutants = 'exec/selected_mutant_qc'
 
     # Iterate through the folder
-    for filename in os.listdir(origin_path):
+    for filename in tqdm(os.listdir(origin_path), desc="Checking results..."):
         if filename.endswith('.csv'):
             file_path = os.path.join(origin_path, filename)
             # Pattern to match any of the substrings
@@ -108,7 +108,6 @@ def main():
             oracle_df = pd.read_csv(file_path)
             mutants_path = f'{all_mutants}/mutants_{circuit_name}'
             mutants_df = load_and_merge_files(mutants_path)
-            print(oracle_df)
             results_df = checkResults(oracle_df, mutants_df)
             results_df.to_csv(f'results/results_{circuit_name}.csv')
 
