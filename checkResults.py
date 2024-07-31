@@ -86,7 +86,7 @@ def checkResults(oracle_df, mutants_df):
             if noisy_chisquare < tolerance:
                 killed_NC = True
 
-            new_line = {'Name': row.Name, 'Input': row.Input, 'Ideal_chisquare': ideal_chisquare, 'Noisy_chisquare': noisy_chisquare, 'Ideal_hellinger': ideal_hellinger, 'Noisy_hellinger': noisy_hellinger, 'Ideal_trace': ideal_trace, 'Noisy_trace': noisy_trace, 'Ideal_fidelity': ideal_fidelity, 'Noisy_fidelity': noisy_fidelity,'Killed_IC': killed_IC, 'Killed_NC': killed_NC, 'Killed_IH': killed_IH,'Killed_NH': killed_NH,'Killed_IT': killed_IT,'Killed_NT': killed_NT,'Killed_IF': killed_IF,'Killed_NF': killed_NF}
+            new_line = {'Name': row.Name.split('/')[-1], 'Input': row.Input, 'Ideal_chisquare': ideal_chisquare, 'Noisy_chisquare': noisy_chisquare, 'Ideal_hellinger': ideal_hellinger, 'Noisy_hellinger': noisy_hellinger, 'Ideal_trace': ideal_trace, 'Noisy_trace': noisy_trace, 'Ideal_fidelity': ideal_fidelity, 'Noisy_fidelity': noisy_fidelity,'Killed_IC': killed_IC, 'Killed_NC': killed_NC, 'Killed_IH': killed_IH,'Killed_NH': killed_NH,'Killed_IT': killed_IT,'Killed_NT': killed_NT,'Killed_IF': killed_IF,'Killed_NF': killed_NF}
             new_df = pd.DataFrame.from_dict(new_line, orient='index').T
             results_df = pd.concat([results_df, new_df], ignore_index=True)
 
