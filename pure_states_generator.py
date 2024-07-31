@@ -80,7 +80,7 @@ if __name__ == "__main__":
         max_pure_states = 2 ** n_qubits
         n_inputs = int(max_pure_states / 2)
 
-        if n_inputs > 10:
-            n_inputs = 10
+        if max_pure_states < 20:
+            n_inputs = max_pure_states
 
         pure_states_generator(n_qubits, n_inputs)
