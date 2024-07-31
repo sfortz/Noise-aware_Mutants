@@ -1,6 +1,6 @@
 import sys
 import os
-import pandas as pd
+import pickle
 from qiskit import QuantumCircuit
 from qiskit_aer import AerSimulator
 from qiskit_aer.noise import NoiseModel
@@ -67,27 +67,7 @@ def final_density_matrix(qc_init):
     job = noisy_simulator.run(isa_circuit_noisy, shots=num_shots, seed=42)
     noisy_dm = job.result().data().get('density_matrix')
 
-    return ideal_dm, noisy_dm
-
-
-def execute_inputs(qc, filename, input_type, inputs):
-    df = pd.DataFrame(
-        columns=['Name', 'Input', 'Ideal_output_distribution', 'Ideal_density_matrix', 'Noisy_output_distribution',
-                 'Noisy_density_matrix'])
-    for x, input_qc in enumerate(inputs):
-        qc_init = input_qc.copy()
-        qc_init = qc_init.compose(qc)
-        ideal_out_dist, noisy_out_dist = output_distribution(qc_init)
-
-        ideal_dm, noisy_dm = final_density_matrix(qc_init)
-
-        new_line = {'Name': filename, 'Input': f'{input_type}_{x}', 'Ideal_output_distribution': ideal_out_dist,
-                    'Ideal_density_matrix': ideal_dm, 'Noisy_output_distribution': noisy_out_dist,
-                    'Noisy_density_matrix': noisy_dm}
-        new_df = pd.DataFrame.from_dict(new_line, orient='index').T
-        df = pd.concat([df, new_df], ignore_index=True)
-
-    return df
+    return ideal_dm.data, noisy_dm.data
 
 
 def get_inputs(pure_state, num_qubits):
@@ -115,7 +95,7 @@ def process_file(filepath, base_input_dir, base_output_dir):
 
     # Create the relative path for the output directory
     relative_path = os.path.relpath(filepath, base_input_dir)
-    outputfile = relative_path.replace('.qasm', '_output.csv')
+    outputfile = relative_path.replace('.qasm', '_output.pkl')
     output_path = os.path.join(base_output_dir, outputfile)
 
     print(f"Executing: {filepath}")
@@ -124,21 +104,56 @@ def process_file(filepath, base_input_dir, base_output_dir):
         print(f"Output file already exists for {filepath}, skipping.")
         return
 
+    # Ensure the output directory exists
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
     try:
-        # Execute the file and get the result as a DataFrame
+        # Execute the file and get the result as a JSON
         qc = QuantumCircuit.from_qasm_file(filepath)
-
         pure_state_inputs = get_inputs(True, qc.num_qubits)
-        results_pure_state = execute_inputs(qc, filepath, "PureState", pure_state_inputs)
         quratest_inputs = get_inputs(False, qc.num_qubits)
-        results_quratest = execute_inputs(qc, filepath, "Quratest", quratest_inputs)
-        result_df = pd.concat([results_pure_state, results_quratest], ignore_index=True)
 
-        # Ensure the output directory exists
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        # Save the result DataFrame as a CSV file
-        result_df.to_csv(output_path, index=False)
-        print(f"Result saved as {output_path}")
+        results = []
+
+        for index, (ps_input, qt_input) in enumerate(zip(pure_state_inputs, quratest_inputs)):
+            qc_init_ps = ps_input.copy()
+            qc_init_ps = qc_init_ps.compose(qc)
+            ps_ideal_out_dist, ps_noisy_out_dist = output_distribution(qc_init_ps)
+            ps_ideal_dm, ps_noisy_dm = final_density_matrix(qc_init_ps)
+
+            # Prepare PureState data row
+            pure_state_row = {
+                'Name': filepath,
+                'Input': f'PureState_{index}',
+                'Ideal_output_distribution': ps_ideal_out_dist,
+                'Ideal_density_matrix': ps_ideal_dm,
+                'Noisy_output_distribution': ps_noisy_out_dist,
+                'Noisy_density_matrix': ps_noisy_dm
+            }
+            results.append(pure_state_row)
+
+            qc_init_qt = qt_input.copy()
+            qc_init_qt = qc_init_qt.compose(qc)
+            qt_ideal_out_dist, qt_noisy_out_dist = output_distribution(qc_init_qt)
+            qt_ideal_dm, qt_noisy_dm = final_density_matrix(qc_init_qt)
+
+            # Prepare Quratest data row
+            quratest_row = {
+                'Name': filepath,
+                'Input': f'Quratest_{index}',
+                'Ideal_output_distribution': qt_ideal_out_dist,
+                'Ideal_density_matrix': qt_ideal_dm,
+                'Noisy_output_distribution': qt_noisy_out_dist,
+                'Noisy_density_matrix': qt_noisy_dm
+            }
+            results.append(quratest_row)
+
+        # Save results using Pickle
+        with open(output_path, 'wb') as file:
+            pickle.dump(results, file)
+
+        print(f"Output saved to {output_path}")
+
     except Exception as e:
         print(f"Error processing file {filepath}: {e}")
 
