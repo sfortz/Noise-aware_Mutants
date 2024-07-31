@@ -95,7 +95,7 @@ def get_inputs(pure_state, num_qubits):
     if pure_state:
         folder = f'data/pure_state_inputs/inputs_{num_qubits}_qubits'
     else:
-        folder = f'data/generated_inputs/inputs_{num_qubits}_qubits'
+        folder = f'data/quratest_inputs/inputs_{num_qubits}_qubits'
 
     inputs = []
     for filename in os.listdir(folder):
