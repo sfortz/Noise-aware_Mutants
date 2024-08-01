@@ -1,115 +1,139 @@
+import sys
 import os
 import re
+import pickle
 import pandas as pd
 from tqdm import tqdm
-
-
 from distances import fidelityCalc, traceDist, getHellinger, compareChisquare
 
 
 def load_and_merge_files(folder):
-    merged_df = pd.DataFrame()
+    merged_data = []
     # Iterate through the folder
     for filename in os.listdir(folder):
-        if filename.endswith('.csv'):
+        if filename.endswith('.pkl'):
             file_path = os.path.join(folder, filename)
-            df = pd.read_csv(file_path)
-            merged_df = pd.concat([merged_df, df], ignore_index=True)
+            with open(file_path, 'rb') as file:
+                data = pickle.load(file)
+                merged_data.extend(data)
 
-    return merged_df
+    return merged_data
 
 
-def checkResults(oracle_df, mutants_df):
-    column_names = ['Name', 'Input', 'Ideal_chisquare', 'Noisy_chisquare', 'Ideal_hellinger', 'Noisy_hellinger', 'Ideal_trace', 'Noisy_trace', 'Ideal_fidelity', 'Noisy_fidelity','Killed_IC','Killed_NC','Killed_IH','Killed_NH','Killed_IT','Killed_NT','Killed_IF','Killed_NF']
-    results_df = pd.DataFrame(columns=column_names)
+def calculate_killed_flags(ideal, noisy, tolerance_values):
+    """
+    Determines the killed flags based on ideal and noisy values and tolerance values.
+    """
+    killed_flags = {}
+    killed_flags['Killed_IF'] = ideal['fidelity'] < tolerance_values['fidelity']
+    killed_flags['Killed_NF'] = noisy['fidelity'] < tolerance_values['fidelity']
+    killed_flags['Killed_IT'] = ideal['trace'] > tolerance_values['trace']
+    killed_flags['Killed_NT'] = noisy['trace'] > tolerance_values['trace']
+    killed_flags['Killed_IH'] = ideal['hellinger'] > tolerance_values['hellinger']
+    killed_flags['Killed_NH'] = noisy['hellinger'] > tolerance_values['hellinger']
+    killed_flags['Killed_IC'] = ideal['chisquare'] < tolerance_values['chisquare']
+    killed_flags['Killed_NC'] = noisy['chisquare'] < tolerance_values['chisquare']
+    return killed_flags
 
-    for ind, row in mutants_df.iterrows():
-        match = oracle_df[oracle_df['Input'] == row.Input]
-        if not match.empty:
-            killed_IC = False
-            killed_NC = False
-            killed_IH = False
-            killed_NH = False
-            killed_IT = False
-            killed_NT = False
-            killed_IF = False
-            killed_NF = False
-            index = match.index[0]
 
-            oracle_output = oracle_df.at[index, 'Ideal_output_distribution']
-            mutant_output = row.Ideal_output_distribution
-            ideal_chisquare = compareChisquare(oracle_output, mutant_output)
+def checkResults(oracle_data, mutants_data):
+    column_names = ['Name', 'Input', 'Ideal_chisquare', 'Noisy_chisquare', 'Ideal_hellinger', 'Noisy_hellinger',
+                    'Ideal_trace', 'Noisy_trace', 'Ideal_fidelity', 'Noisy_fidelity', 'Killed_IC', 'Killed_NC',
+                    'Killed_IH', 'Killed_NH', 'Killed_IT', 'Killed_NT', 'Killed_IF', 'Killed_NF']
 
-            oracle_output = oracle_df.at[index, 'Noisy_output_distribution']
-            mutant_output = row.Ideal_output_distribution
-            noisy_chisquare = compareChisquare(oracle_output, mutant_output)
+    results = []
 
-            oracle_output = oracle_df.at[index, 'Ideal_output_distribution']
-            mutant_output = row.Ideal_output_distribution
-            ideal_hellinger = getHellinger(oracle_output, mutant_output)
+    # Convert the oracle_data list of dictionaries into a lookup dictionary for faster access
+    oracle_lookup = {item['Input']: item for item in oracle_data}
 
-            oracle_output = oracle_df.at[index, 'Noisy_output_distribution']
-            mutant_output = row.Ideal_output_distribution
-            noisy_hellinger = getHellinger(oracle_output, mutant_output)
+    # Define tolerance values
+    tolerance_values = {
+        'fidelity': 1 - 1e-5,
+        'trace': 1e-5,
+        'hellinger': 0.05,
+        'chisquare': 0.01
+    }
 
-            oracle_output = oracle_df.at[index, 'Ideal_density_matrix']
-            mutant_output = row.Ideal_density_matrix
-            ideal_fidelity = fidelityCalc(oracle_output, mutant_output)
-            ideal_trace = traceDist(oracle_output,mutant_output)
+    for mutant in mutants_data:
+        input_value = mutant['Input']
+        if input_value in oracle_lookup:
+            oracle_entry = oracle_lookup[input_value]
 
-            oracle_output = oracle_df.at[index, 'Noisy_density_matrix']
-            mutant_output = row.Noisy_density_matrix
-            noisy_fidelity = fidelityCalc(oracle_output, mutant_output)
-            noisy_trace = traceDist(oracle_output, mutant_output)
+            # Perform calculations
+            ideal_chisquare = compareChisquare(oracle_entry['Ideal_output_distribution'],
+                                               mutant['Ideal_output_distribution'])
+            noisy_chisquare = compareChisquare(oracle_entry['Noisy_output_distribution'],
+                                               mutant['Ideal_output_distribution'])
 
-            tolerance = 1 - 1e-5
-            if ideal_fidelity < tolerance:
-                killed_IF = True
-            if noisy_fidelity < tolerance:
-                killed_NF = True
+            ideal_hellinger = getHellinger(oracle_entry['Ideal_output_distribution'],
+                                           mutant['Ideal_output_distribution'])
+            noisy_hellinger = getHellinger(oracle_entry['Noisy_output_distribution'],
+                                           mutant['Ideal_output_distribution'])
 
-            tolerance = 1e-5
-            if ideal_trace > tolerance:
-                killed_IT = True
-            if noisy_trace > tolerance:
-                killed_NT = True
+            ideal_fidelity = fidelityCalc(oracle_entry['Ideal_density_matrix'], mutant['Ideal_density_matrix'])
+            noisy_fidelity = fidelityCalc(oracle_entry['Noisy_density_matrix'], mutant['Noisy_density_matrix'])
 
-            tolerance = 0.05
-            if ideal_hellinger > tolerance:
-                killed_IH = True
-            if noisy_hellinger > tolerance:
-                killed_NH = True
+            ideal_trace = traceDist(oracle_entry['Ideal_density_matrix'], mutant['Ideal_density_matrix'])
+            noisy_trace = traceDist(oracle_entry['Noisy_density_matrix'], mutant['Noisy_density_matrix'])
 
-            tolerance = 0.01
-            if ideal_chisquare < tolerance:
-                killed_IC = True
-            if noisy_chisquare < tolerance:
-                killed_NC = True
+            # Determine killed flags
+            killed_flags = calculate_killed_flags(
+                ideal={'fidelity': ideal_fidelity, 'trace': ideal_trace, 'hellinger': ideal_hellinger,
+                       'chisquare': ideal_chisquare},
+                noisy={'fidelity': noisy_fidelity, 'trace': noisy_trace, 'hellinger': noisy_hellinger,
+                       'chisquare': noisy_chisquare},
+                tolerance_values=tolerance_values
+            )
 
-            new_line = {'Name': row.Name.split('/')[-1], 'Input': row.Input, 'Ideal_chisquare': ideal_chisquare, 'Noisy_chisquare': noisy_chisquare, 'Ideal_hellinger': ideal_hellinger, 'Noisy_hellinger': noisy_hellinger, 'Ideal_trace': ideal_trace, 'Noisy_trace': noisy_trace, 'Ideal_fidelity': ideal_fidelity, 'Noisy_fidelity': noisy_fidelity,'Killed_IC': killed_IC, 'Killed_NC': killed_NC, 'Killed_IH': killed_IH,'Killed_NH': killed_NH,'Killed_IT': killed_IT,'Killed_NT': killed_NT,'Killed_IF': killed_IF,'Killed_NF': killed_NF}
-            new_df = pd.DataFrame.from_dict(new_line, orient='index').T
-            results_df = pd.concat([results_df, new_df], ignore_index=True)
+            # Create a dictionary for the result row
+            new_line = {
+                'Name': mutant['Name'].split('/')[-1],
+                'Input': mutant['Input'],
+                'Ideal_chisquare': ideal_chisquare,
+                'Noisy_chisquare': noisy_chisquare,
+                'Ideal_hellinger': ideal_hellinger,
+                'Noisy_hellinger': noisy_hellinger,
+                'Ideal_trace': ideal_trace,
+                'Noisy_trace': noisy_trace,
+                'Ideal_fidelity': ideal_fidelity,
+                'Noisy_fidelity': noisy_fidelity,
+                **killed_flags
+            }
+
+            results.append(new_line)
+
+    # Convert the results list of dictionaries to a DataFrame
+    results_df = pd.DataFrame(results, columns=column_names)
 
     return results_df
 
 
 def main():
     origin_path = 'exec/origin_qc'
-    all_mutants = 'exec/selected_mutant_qc'
+    all_mutants = 'exec/selected_mutants'
+
+    #,Name,Input,Ideal_chisquare,Noisy_chisquare,Ideal_hellinger,Noisy_hellinger,Ideal_trace,Noisy_trace,Ideal_fidelity,Noisy_fidelity,Killed_IC,Killed_NC,Killed_IH,Killed_NH,Killed_IT,Killed_NT,Killed_IF,Killed_NF
 
     # Iterate through the folder
     for filename in tqdm(os.listdir(origin_path), desc="Checking results..."):
-        if filename.endswith('.csv'):
+        if filename.endswith('.pkl'):
             file_path = os.path.join(origin_path, filename)
             # Pattern to match any of the substrings
-            pattern = r"indep_qiskit_|_output|.csv"
+            pattern = r"indep_qiskit_|_output|.pkl"
             # Remove the substrings
             circuit_name = re.sub(pattern, "", filename)
-            oracle_df = pd.read_csv(file_path)
-            mutants_path = f'{all_mutants}/mutants_{circuit_name}'
-            mutants_df = load_and_merge_files(mutants_path)
-            results_df = checkResults(oracle_df, mutants_df)
-            results_df.to_csv(f'results/results_{circuit_name}.csv')
+            with open(file_path, 'rb') as file:
+                oracle_pkl = pickle.load(file)
+
+            if isinstance(oracle_pkl, list):
+                mutants_path = f'{all_mutants}/mutants_{circuit_name}'
+                mutants_pkl = load_and_merge_files(mutants_path)
+                results_df = checkResults(oracle_pkl, mutants_pkl)
+                results_df.to_csv(f'results/results_{circuit_name}.csv')
+            else:
+                print(f"Pickle file should contain a List instead of a {type(oracle_pkl)}.")
+                sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
