@@ -112,8 +112,6 @@ def main():
     origin_path = 'exec/origin_qc'
     all_mutants = 'exec/selected_mutants'
 
-    #,Name,Input,Ideal_chisquare,Noisy_chisquare,Ideal_hellinger,Noisy_hellinger,Ideal_trace,Noisy_trace,Ideal_fidelity,Noisy_fidelity,Killed_IC,Killed_NC,Killed_IH,Killed_NH,Killed_IT,Killed_NT,Killed_IF,Killed_NF
-
     # Iterate through the folder
     for filename in tqdm(os.listdir(origin_path), desc="Checking results..."):
         if filename.endswith('.pkl'):
