@@ -10,48 +10,37 @@ import io
 # If modifying these SCOPES, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 
+origin_qc_ID = "1ScWuKuymtwcWabq_JG4OwLC18-2GUr3D"
+selected_mutants_ID = "1JUgQmxD0B7nFRxN3RagUgwwDH4GNrMqB"
+
+
 # The file token.pickle stores the user's access and refresh tokens, and is
 # created automatically when the authorization flow completes for the first
 # time.
-creds = None
-if os.path.exists('token.pickle'):
-    with open('token.pickle', 'rb') as token:
-        creds = pickle.load(token)
+def authenticate_google_drive():
+    """Authenticate and return the Google Drive service."""
+    creds = None
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
 
-# If there are no (valid) credentials available, let the user log in.
-if not creds or not creds.valid:
-    if creds and creds.expired and creds.refresh_token:
-        creds.refresh(Request())
-    else:
-        flow = InstalledAppFlow.from_client_secrets_file(
-            'path/to/credentials.json', SCOPES)
-        creds = flow.run_local_server(port=0)
-    # Save the credentials for the next run
-    with open('token.pickle', 'wb') as token:
-        pickle.dump(creds, token)
+    # If there are no (valid) credentials available, let the user log in.
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'credentials.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+        # Save the credentials for the next run
+        with open('token.pickle', 'wb') as token:
+            pickle.dump(creds, token)
 
-service = build('drive', 'v3', credentials=creds)
-
-# Replace 'your_folder_id_here' with the actual folder ID
-folder_id = '1CXNwIIkzCBdeWnBBnAGEK2i-g_8ZSnPH'
-query = f"'{folder_id}' in parents"
-
-results = service.files().list(
-    q=query,
-    pageSize=10,  # Adjust pageSize as needed
-    fields="nextPageToken, files(id, name)"
-).execute()
-items = results.get('files', [])
-
-if not items:
-    print('No files found.')
-else:
-    print('Files:')
-    for item in items:
-        print(f"{item['name']} ({item['id']})")
+    service = build('drive', 'v3', credentials=creds)
+    return service
 
 
-def read_file_content(file_id):
+def read_file_content(service, file_id):
     request = service.files().get_media(fileId=file_id)
     file_io = io.BytesIO()
 
@@ -65,12 +54,34 @@ def read_file_content(file_id):
     file_io.seek(0)
     return file_io.read().decode('utf-8')
 
+def main():
+    service = authenticate_google_drive()
+    # Replace 'your_folder_id_here' with the actual folder ID
+    folder_id = origin_qc_ID
+    query = f"'{folder_id}' in parents"
 
-# Reading content of each file
-for item in items:
-    file_id = item['id']
-    file_name = item['name']
-    print(f"Reading content of file: {file_name} ({file_id})")
-    content = read_file_content(file_id)
-    print(f"Content of {file_name}:")
-    print(content)
+    results = service.files().list(
+        q=query,
+        pageSize=10,  # Adjust pageSize as needed
+        fields="nextPageToken, files(id, name)"
+    ).execute()
+    items = results.get('files', [])
+
+    if not items:
+        print('No files found.')
+    else:
+        print('Files:')
+        for item in items:
+            print(f"{item['name']} ({item['id']})")
+
+    # Reading content of each file
+    for item in items:
+        file_id = item['id']
+        file_name = item['name']
+        print(f"Reading content of file: {file_name} ({file_id})")
+        #content = read_file_content(service, file_id)
+        print(f"Content of {file_name}:")
+        #print(content)
+
+if __name__ == "__main__":
+    main()
