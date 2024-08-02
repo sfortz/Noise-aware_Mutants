@@ -6,7 +6,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from connectDriveCloud import authenticate_google_drive, load_pickle_content, get_files
-from distances import fidelityCalc, traceDist, getHellinger, compareChisquare
+from distances import fidelityCalc, traceDist, getHellinger, compareChisquare, jensenShannonDivergence
 
 
 def calculate_killed_flags(ideal, noisy, tolerance_values):
@@ -22,13 +22,16 @@ def calculate_killed_flags(ideal, noisy, tolerance_values):
     killed_flags['Killed_NH'] = noisy['hellinger'] > tolerance_values['hellinger']
     killed_flags['Killed_IC'] = ideal['chisquare'] < tolerance_values['chisquare']
     killed_flags['Killed_NC'] = noisy['chisquare'] < tolerance_values['chisquare']
+    killed_flags['Killed_IJ'] = ideal['jensenshannon'] < tolerance_values['jensenshannon']
+    killed_flags['Killed_NJ'] = noisy['jensenshannon'] < tolerance_values['jensenshannon']
     return killed_flags
 
 
 def check_results(oracle_data, mutants_data):
     column_names = ['Name', 'Input', 'Ideal_chisquare', 'Noisy_chisquare', 'Ideal_hellinger', 'Noisy_hellinger',
-                    'Ideal_trace', 'Noisy_trace', 'Ideal_fidelity', 'Noisy_fidelity', 'Killed_IC', 'Killed_NC',
-                    'Killed_IH', 'Killed_NH', 'Killed_IT', 'Killed_NT', 'Killed_IF', 'Killed_NF']
+                    'Ideal_jensenshannon', 'Noisy_jensenshannon', 'Ideal_trace', 'Noisy_trace', 'Ideal_fidelity',
+                    'Noisy_fidelity', 'Killed_IC', 'Killed_NC', 'Killed_IH', 'Killed_NH', 'Killed_IJ', 'Killed_NJ',
+                    'Killed_IT', 'Killed_NT', 'Killed_IF', 'Killed_NF']
 
     results = []
 
@@ -40,6 +43,7 @@ def check_results(oracle_data, mutants_data):
         'fidelity': 1 - 1e-5,
         'trace': 1e-5,
         'hellinger': 0.05,
+        'jensenshannon': 0.05,
         'chisquare': 0.01
     }
 
@@ -59,6 +63,11 @@ def check_results(oracle_data, mutants_data):
             noisy_hellinger = getHellinger(oracle_entry['Noisy_output_distribution'],
                                            mutant['Ideal_output_distribution'])
 
+            ideal_jensenshannon = jensenShannonDivergence(oracle_entry['Ideal_output_distribution'],
+                                               mutant['Ideal_output_distribution'])
+            noisy_jensenshannon = jensenShannonDivergence(oracle_entry['Noisy_output_distribution'],
+                                               mutant['Ideal_output_distribution'])
+
             ideal_fidelity = fidelityCalc(oracle_entry['Ideal_density_matrix'], mutant['Ideal_density_matrix'])
             noisy_fidelity = fidelityCalc(oracle_entry['Noisy_density_matrix'], mutant['Noisy_density_matrix'])
 
@@ -68,9 +77,9 @@ def check_results(oracle_data, mutants_data):
             # Determine killed flags
             killed_flags = calculate_killed_flags(
                 ideal={'fidelity': ideal_fidelity, 'trace': ideal_trace, 'hellinger': ideal_hellinger,
-                       'chisquare': ideal_chisquare},
+                       'chisquare': ideal_chisquare, 'jensenshannon': ideal_jensenshannon},
                 noisy={'fidelity': noisy_fidelity, 'trace': noisy_trace, 'hellinger': noisy_hellinger,
-                       'chisquare': noisy_chisquare},
+                       'chisquare': noisy_chisquare, 'jensenshannon': noisy_jensenshannon},
                 tolerance_values=tolerance_values
             )
 
@@ -82,6 +91,8 @@ def check_results(oracle_data, mutants_data):
                 'Noisy_chisquare': noisy_chisquare,
                 'Ideal_hellinger': ideal_hellinger,
                 'Noisy_hellinger': noisy_hellinger,
+                'Ideal_jensenshannon': ideal_jensenshannon,
+                'Noisy_jensenshannon': noisy_jensenshannon,
                 'Ideal_trace': ideal_trace,
                 'Noisy_trace': noisy_trace,
                 'Ideal_fidelity': ideal_fidelity,
