@@ -1,23 +1,12 @@
-import sys
-import os
-import re
 import pickle
+import re
+import sys
+
 import pandas as pd
 from tqdm import tqdm
+
+from connectDriveCloud import authenticate_google_drive, load_pickle_content, get_files
 from distances import fidelityCalc, traceDist, getHellinger, compareChisquare
-
-
-def load_and_merge_files(folder):
-    merged_data = []
-    # Iterate through the folder
-    for filename in os.listdir(folder):
-        if filename.endswith('.pkl'):
-            file_path = os.path.join(folder, filename)
-            with open(file_path, 'rb') as file:
-                data = pickle.load(file)
-                merged_data.extend(data)
-
-    return merged_data
 
 
 def calculate_killed_flags(ideal, noisy, tolerance_values):
@@ -36,7 +25,7 @@ def calculate_killed_flags(ideal, noisy, tolerance_values):
     return killed_flags
 
 
-def checkResults(oracle_data, mutants_data):
+def check_results(oracle_data, mutants_data):
     column_names = ['Name', 'Input', 'Ideal_chisquare', 'Noisy_chisquare', 'Ideal_hellinger', 'Noisy_hellinger',
                     'Ideal_trace', 'Noisy_trace', 'Ideal_fidelity', 'Noisy_fidelity', 'Killed_IC', 'Killed_NC',
                     'Killed_IH', 'Killed_NH', 'Killed_IT', 'Killed_NT', 'Killed_IF', 'Killed_NF']
@@ -108,29 +97,67 @@ def checkResults(oracle_data, mutants_data):
     return results_df
 
 
-def main():
-    origin_path = 'exec/origin_qc'
-    all_mutants = 'exec/selected_mutants'
+def get_files_id_dict(service, folder_id):
+    items = get_files(service, folder_id)
+    return {item['name']: item['id'] for item in items} if items else {}
 
-    # Iterate through the folder
-    for filename in tqdm(os.listdir(origin_path), desc="Checking results..."):
+
+def load_and_merge_files(service, folder_id):
+    items = get_files(service, folder_id)
+    merged_data = []
+
+    for item in items:
+        filename = item['name']
+        file_id = item['id']
+
+        try:
+            data = load_pickle_content(service, file_id)
+            merged_data.extend(data)
+        except pickle.UnpicklingError:
+            print(f'Error unpickling file: {filename}')
+        except Exception as e:
+            print(f'Error processing file {filename}: {str(e)}')
+
+    return merged_data
+
+
+def process_files(service, origin_id, mutants_id):
+    origin_files = get_files(service, origin_id)
+    dic_mutant_folders = get_files_id_dict(service, mutants_id)
+
+    for item in tqdm(origin_files, desc="Checking results..."):
+        filename = item['name']
+        file_id = item['id']
+
         if filename.endswith('.pkl'):
-            file_path = os.path.join(origin_path, filename)
-            # Pattern to match any of the substrings
-            pattern = r"indep_qiskit_|_output|.pkl"
-            # Remove the substrings
-            circuit_name = re.sub(pattern, "", filename)
-            with open(file_path, 'rb') as file:
-                oracle_pkl = pickle.load(file)
+            try:
+                oracle_pkl = load_pickle_content(service, file_id)
+                pattern = r"indep_qiskit_|_output|.pkl"
+                circuit_name = re.sub(pattern, "", filename)
 
-            if isinstance(oracle_pkl, list):
-                mutants_path = f'{all_mutants}/mutants_{circuit_name}'
-                mutants_pkl = load_and_merge_files(mutants_path)
-                results_df = checkResults(oracle_pkl, mutants_pkl)
-                results_df.to_csv(f'results/results_{circuit_name}.csv')
-            else:
-                print(f"Pickle file should contain a List instead of a {type(oracle_pkl)}.")
-                sys.exit(1)
+                if isinstance(oracle_pkl, list):
+                    mutant_folder_id = dic_mutant_folders.get(f'mutants_{circuit_name}')
+                    if mutant_folder_id:
+                        mutants_pkl = load_and_merge_files(service, mutant_folder_id)
+                        results_df = check_results(oracle_pkl, mutants_pkl)
+                        results_df.to_csv(f'results/results_{circuit_name}.csv')
+                    else:
+                        print(f"No mutant folder found for {circuit_name}")
+                else:
+                    print(f"Pickle file should contain a List instead of a {type(oracle_pkl)}.")
+                    sys.exit(1)
+            except pickle.UnpicklingError:
+                print(f'Error unpickling file: {filename}')
+            except Exception as e:
+                print(f'Error processing file {filename}: {str(e)}')
+
+
+def main():
+    origin_id = "1ScWuKuymtwcWabq_JG4OwLC18-2GUr3D"
+    all_mutants_id = "1JUgQmxD0B7nFRxN3RagUgwwDH4GNrMqB"
+
+    service = authenticate_google_drive()
+    process_files(service, origin_id, all_mutants_id)
 
 
 if __name__ == "__main__":
