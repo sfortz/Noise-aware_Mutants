@@ -164,3 +164,4 @@ cython_debug/
 # Mac files
 .DS_Store
 credentials.json
+token.pickle
