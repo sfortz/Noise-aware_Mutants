@@ -141,16 +141,16 @@ def process_files(service, origin_id, mutants_id):
     jensenshannon_values = [0.01, 0.05]
     chisquare_values = [0.01, 0.05]
 
+    # Use itertools.product to get all possible combinations
+    all_combinations = list(itertools.product(filelity_values, trace_values, hellinger_values, jensenshannon_values,
+                                              chisquare_values))
+
     origin_files = get_files(service, origin_id)
     dic_mutant_folders = get_files_id_dict(service, mutants_id)
 
     for item in tqdm(origin_files, desc="Checking results..."):
-        # Use itertools.product to get all possible combinations
-        all_combinations = itertools.product(filelity_values, trace_values, hellinger_values, jensenshannon_values,
-                                         chisquare_values)
         filename = item['name']
         file_id = item['id']
-        print(filename)
         if filename.endswith('.pkl'):
             try:
                 oracle_pkl = load_pickle_content(service, file_id)
@@ -159,7 +159,7 @@ def process_files(service, origin_id, mutants_id):
                 if isinstance(oracle_pkl, list):
                     mutant_folder_id = dic_mutant_folders.get(f'mutants_{circuit_name}')
                     if mutant_folder_id:
-                        #mutants_pkl = load_and_merge_files(service, mutant_folder_id)
+                        mutants_pkl = load_and_merge_files(service, mutant_folder_id)
                         for values in all_combinations:
                             fidelity_value, trace_value, hellinger_value, jensenshannon_value, chisquare_value = values
                             # Define tolerance values
@@ -170,10 +170,9 @@ def process_files(service, origin_id, mutants_id):
                                 'jensenshannon': jensenshannon_value,
                                 'chisquare': chisquare_value
                             }
-                            print(tolerance_values_noisy)
-                            #results_df = check_results(oracle_pkl, mutants_pkl, tolerance_values_ideal, tolerance_values_noisy)
-                            #os.makedirs(f'results/results_{values}', exist_ok=True)
-                            #results_df.to_csv(f'results/results_{values}/results_{circuit_name}.csv')
+                            results_df = check_results(oracle_pkl, mutants_pkl, tolerance_values_ideal, tolerance_values_noisy)
+                            os.makedirs(f'results/results_{values}', exist_ok=True)
+                            results_df.to_csv(f'results/results_{values}/results_{circuit_name}.csv')
                     else:
                         print(f"No mutant folder found for {circuit_name}")
                 else:
