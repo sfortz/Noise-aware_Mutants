@@ -76,7 +76,7 @@ def pure_states_generator(n_qbits, n_inputs):
 
 if __name__ == "__main__":
 
-    for n_qubits in range(2, 11):
+    for n_qubits in range(2, 13):
         max_pure_states = 2 ** n_qubits
         n_inputs = int(max_pure_states / 2)
 

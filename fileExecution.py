@@ -9,8 +9,9 @@ from qiskit_ibm_runtime import QiskitRuntimeService
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit_ibm_runtime import EstimatorV2 as Estimator
 
-# Assuming you already have setup your IBM quantum account
+# Save an IBM Quantum account.
 service = QiskitRuntimeService()
+
 
 # Get noisy_simulator
 ideal_simulator = AerSimulator()
