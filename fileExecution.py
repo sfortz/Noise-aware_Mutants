@@ -64,11 +64,11 @@ def expectation_values(qc_init):
 
     job_ideal = ideal_estimator.run([(isa_circuit_ideal, observable)])
     result_ideal = job_ideal.result()[0]
-    ideal_expectation = result_ideal.data.evs
+    ideal_expectation = result_ideal.data.evs.item()
 
     job_noisy = noisy_estimator.run([(isa_circuit_noisy, observable)])
     result_noisy = job_noisy.result()[0]
-    noisy_expectation = result_noisy.data.evs
+    noisy_expectation = result_noisy.data.evs.item()
 
     return ideal_expectation, noisy_expectation
 

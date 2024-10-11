@@ -26,14 +26,16 @@ def calculate_killed_flags(ideal, noisy, tolerance_values_ideal, tolerance_value
     killed_flags['Killed_NC'] = noisy['chisquare'] < tolerance_values_noisy['chisquare']
     killed_flags['Killed_IJ'] = ideal['jensenshannon'] < tolerance_values_ideal['jensenshannon']
     killed_flags['Killed_NJ'] = noisy['jensenshannon'] < tolerance_values_noisy['jensenshannon']
+    killed_flags['Killed_IE'] = ideal['expectation'] > tolerance_values_ideal['expectation']
+    killed_flags['Killed_NE'] = noisy['expectation'] > tolerance_values_noisy['expectation']
     return killed_flags
 
 
 def check_results(oracle_data, mutants_data, tolerance_values_ideal, tolerance_values_noisy):
     column_names = ['Name', 'Input', 'Ideal_chisquare', 'Noisy_chisquare', 'Ideal_hellinger', 'Noisy_hellinger',
                     'Ideal_jensenshannon', 'Noisy_jensenshannon', 'Ideal_trace', 'Noisy_trace', 'Ideal_fidelity',
-                    'Noisy_fidelity', 'Killed_IC', 'Killed_NC', 'Killed_IH', 'Killed_NH', 'Killed_IJ', 'Killed_NJ',
-                    'Killed_IT', 'Killed_NT', 'Killed_IF', 'Killed_NF']
+                    'Noisy_fidelity', 'Ideal_expectation', 'Noisy_expectation', 'Killed_IC', 'Killed_NC', 'Killed_IH', 'Killed_NH', 'Killed_IJ', 'Killed_NJ',
+                    'Killed_IT', 'Killed_NT', 'Killed_IF', 'Killed_NF', 'Killed_IE', 'Killed_NE']
 
     results = []
 
@@ -67,12 +69,15 @@ def check_results(oracle_data, mutants_data, tolerance_values_ideal, tolerance_v
             ideal_trace = traceDist(oracle_entry['Ideal_density_matrix'], mutant['Ideal_density_matrix'])
             noisy_trace = traceDist(oracle_entry['Noisy_density_matrix'], mutant['Noisy_density_matrix'])
 
+            ideal_expectation = abs(oracle_entry['Ideal_expectation_value']-mutant['Ideal_expectation_value'])
+            noisy_expectation = abs(oracle_entry['Noisy_expectation_value']-mutant['Noisy_expectation_value'])
+
             # Determine killed flags
             killed_flags = calculate_killed_flags(
                 ideal={'fidelity': ideal_fidelity, 'trace': ideal_trace, 'hellinger': ideal_hellinger,
-                       'chisquare': ideal_chisquare, 'jensenshannon': ideal_jensenshannon},
+                       'chisquare': ideal_chisquare, 'jensenshannon': ideal_jensenshannon, 'expectation': ideal_expectation},
                 noisy={'fidelity': noisy_fidelity, 'trace': noisy_trace, 'hellinger': noisy_hellinger,
-                       'chisquare': noisy_chisquare, 'jensenshannon': noisy_jensenshannon},
+                       'chisquare': noisy_chisquare, 'jensenshannon': noisy_jensenshannon, 'expectation': noisy_expectation},
                 tolerance_values_ideal=tolerance_values_ideal,
                 tolerance_values_noisy=tolerance_values_noisy
             )
@@ -91,6 +96,8 @@ def check_results(oracle_data, mutants_data, tolerance_values_ideal, tolerance_v
                 'Noisy_trace': noisy_trace,
                 'Ideal_fidelity': ideal_fidelity,
                 'Noisy_fidelity': noisy_fidelity,
+                'Ideal_expectation': ideal_expectation,
+                'Noisy_expectation': noisy_expectation,
                 **killed_flags
             }
 
@@ -133,17 +140,10 @@ def process_files(service, origin_id, mutants_id):
         'trace': 1e-5,
         'hellinger': 0.01,
         'jensenshannon': 0.01,
-        'chisquare': 0.01
+        'chisquare': 0.01,
+        'expectation': 0.01
     }
-    filelity_values = [1 - 1e-5, 1 - 5e-5]
-    trace_values = [1e-5, 5e-5]
-    hellinger_values = [0.01, 0.05]
-    jensenshannon_values = [0.01, 0.05]
-    chisquare_values = [0.01, 0.05]
-
-    # Use itertools.product to get all possible combinations
-    all_combinations = list(itertools.product(filelity_values, trace_values, hellinger_values, jensenshannon_values,
-                                              chisquare_values))
+    possible_thresholds = [0.01, 0.05]
 
     origin_files = get_files(service, origin_id)
     dic_mutant_folders = get_files_id_dict(service, mutants_id)
@@ -160,19 +160,19 @@ def process_files(service, origin_id, mutants_id):
                     mutant_folder_id = dic_mutant_folders.get(f'mutants_{circuit_name}')
                     if mutant_folder_id:
                         mutants_pkl = load_and_merge_files(service, mutant_folder_id)
-                        for values in all_combinations:
-                            fidelity_value, trace_value, hellinger_value, jensenshannon_value, chisquare_value = values
+                        for threshold in possible_thresholds:
                             # Define tolerance values
                             tolerance_values_noisy = {
-                                'fidelity': fidelity_value,
-                                'trace': trace_value,
-                                'hellinger': hellinger_value,
-                                'jensenshannon': jensenshannon_value,
-                                'chisquare': chisquare_value
+                                'fidelity': 1-threshold,
+                                'trace': threshold,
+                                'hellinger': threshold,
+                                'jensenshannon': threshold,
+                                'chisquare': threshold,
+                                'expectation': threshold
                             }
                             results_df = check_results(oracle_pkl, mutants_pkl, tolerance_values_ideal, tolerance_values_noisy)
-                            os.makedirs(f'results/results_{values}', exist_ok=True)
-                            results_df.to_csv(f'results/results_{values}/results_{circuit_name}.csv')
+                            os.makedirs(f'results/results_{threshold}', exist_ok=True)
+                            results_df.to_csv(f'results/results_{threshold}/results_{circuit_name}.csv')
                     else:
                         print(f"No mutant folder found for {circuit_name}")
                 else:
