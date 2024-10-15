@@ -24,8 +24,8 @@ def calculate_killed_flags(ideal, noisy, tolerance_values_ideal, tolerance_value
     killed_flags['Killed_NH'] = noisy['hellinger'] > tolerance_values_noisy['hellinger']
     killed_flags['Killed_IC'] = ideal['chisquare'] < tolerance_values_ideal['chisquare']
     killed_flags['Killed_NC'] = noisy['chisquare'] < tolerance_values_noisy['chisquare']
-    killed_flags['Killed_IJ'] = ideal['jensenshannon'] < tolerance_values_ideal['jensenshannon']
-    killed_flags['Killed_NJ'] = noisy['jensenshannon'] < tolerance_values_noisy['jensenshannon']
+    killed_flags['Killed_IJ'] = ideal['jensenshannon'] > tolerance_values_ideal['jensenshannon']
+    killed_flags['Killed_NJ'] = noisy['jensenshannon'] > tolerance_values_noisy['jensenshannon']
     killed_flags['Killed_IE'] = ideal['expectation'] > tolerance_values_ideal['expectation']
     killed_flags['Killed_NE'] = noisy['expectation'] > tolerance_values_noisy['expectation']
     return killed_flags
@@ -143,7 +143,7 @@ def process_files(service, origin_id, mutants_id):
         'chisquare': 0.01,
         'expectation': 0.01
     }
-    possible_thresholds = [0.01, 0.05]
+    possible_thresholds = [0.05,]# 0.05]
 
     origin_files = get_files(service, origin_id)
     dic_mutant_folders = get_files_id_dict(service, mutants_id)
@@ -185,8 +185,8 @@ def process_files(service, origin_id, mutants_id):
 
 
 def main():
-    origin_id = "1ScWuKuymtwcWabq_JG4OwLC18-2GUr3D"
-    all_mutants_id = "1JUgQmxD0B7nFRxN3RagUgwwDH4GNrMqB"
+    origin_id = "1qIt65m7cuVMHVkLZkRgc-_dxwc041hvU"
+    all_mutants_id = "1sJsLBaTrD0AWg6J0Eu9hKMaZBn8bkFLt"
 
     service = authenticate_google_drive()
     process_files(service, origin_id, all_mutants_id)
