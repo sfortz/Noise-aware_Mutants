@@ -48,27 +48,27 @@ def check_results(oracle_data, mutants_data, tolerance_values_ideal, tolerance_v
             # Perform calculations
             ideal_chisquare = compareChisquare(oracle_entry['Ideal_output_distribution'],
                                                mutant['Ideal_output_distribution'])
-            noisy_chisquare = compareChisquare(oracle_entry['Noisy_output_distribution'],
+            noisy_chisquare = compareChisquare(oracle_entry['Ideal_output_distribution'],
                                                mutant['Noisy_output_distribution'])
 
             ideal_hellinger = getHellinger(oracle_entry['Ideal_output_distribution'],
                                            mutant['Ideal_output_distribution'])
-            noisy_hellinger = getHellinger(oracle_entry['Noisy_output_distribution'],
+            noisy_hellinger = getHellinger(oracle_entry['Ideal_output_distribution'],
                                            mutant['Noisy_output_distribution'])
 
             ideal_jensenshannon = jensenShannonDivergence(oracle_entry['Ideal_output_distribution'],
                                                mutant['Ideal_output_distribution'])
-            noisy_jensenshannon = jensenShannonDivergence(oracle_entry['Noisy_output_distribution'],
+            noisy_jensenshannon = jensenShannonDivergence(oracle_entry['Ideal_output_distribution'],
                                                mutant['Noisy_output_distribution'])
 
             ideal_fidelity = fidelityCalc(oracle_entry['Ideal_density_matrix'], mutant['Ideal_density_matrix'])
-            noisy_fidelity = fidelityCalc(oracle_entry['Noisy_density_matrix'], mutant['Noisy_density_matrix'])
+            noisy_fidelity = fidelityCalc(oracle_entry['Ideal_density_matrix'], mutant['Noisy_density_matrix'])
 
             ideal_trace = traceDist(oracle_entry['Ideal_density_matrix'], mutant['Ideal_density_matrix'])
-            noisy_trace = traceDist(oracle_entry['Noisy_density_matrix'], mutant['Noisy_density_matrix'])
+            noisy_trace = traceDist(oracle_entry['Ideal_density_matrix'], mutant['Noisy_density_matrix'])
 
             # ideal_expectation = abs(oracle_entry['Ideal_expectation_value']-mutant['Ideal_expectation_value'])
-            # noisy_expectation = abs(oracle_entry['Noisy_expectation_value']-mutant['Noisy_expectation_value'])
+            # noisy_expectation = abs(oracle_entry['Ideal_expectation_value']-mutant['Noisy_expectation_value'])
 
             # ideal_chisquare = 0
             # noisy_chisquare = 0
@@ -166,7 +166,7 @@ def process_files(service, origin_id, mutants_id):
                 pattern = r"indep_qiskit_|_output|.pkl"
                 circuit_name = re.sub(pattern, "", filename)
                 qubits = int(circuit_name.split('_')[1])
-                if qubits == 7:
+                if qubits <= 6:
                     print(circuit_name)
                     oracle_pkl = load_pickle_content(service, file_id)
                     if isinstance(oracle_pkl, list):
@@ -207,6 +207,7 @@ def process_files(service, origin_id, mutants_id):
                 print(f'Error processing file {filename}: {str(e)}')
 
 
+# If you obtain a Google authentication error, just delete the tocken.pickle file.
 def main():
     origin_id = "1qIt65m7cuVMHVkLZkRgc-_dxwc041hvU"
     all_mutants_id = "1sJsLBaTrD0AWg6J0Eu9hKMaZBn8bkFLt"
