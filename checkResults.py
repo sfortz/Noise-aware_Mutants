@@ -67,8 +67,21 @@ def check_results(oracle_data, mutants_data, tolerance_values_ideal, tolerance_v
             ideal_trace = traceDist(oracle_entry['Ideal_density_matrix'], mutant['Ideal_density_matrix'])
             noisy_trace = traceDist(oracle_entry['Noisy_density_matrix'], mutant['Noisy_density_matrix'])
 
-            ideal_expectation = abs(oracle_entry['Ideal_expectation_value']-mutant['Ideal_expectation_value'])
-            noisy_expectation = abs(oracle_entry['Noisy_expectation_value']-mutant['Noisy_expectation_value'])
+            # ideal_expectation = abs(oracle_entry['Ideal_expectation_value']-mutant['Ideal_expectation_value'])
+            # noisy_expectation = abs(oracle_entry['Noisy_expectation_value']-mutant['Noisy_expectation_value'])
+
+            # ideal_chisquare = 0
+            # noisy_chisquare = 0
+            # ideal_hellinger = 0
+            # noisy_hellinger = 0
+            # ideal_jensenshannon = 0
+            # noisy_jensenshannon = 0
+            # ideal_fidelity = 0
+            # noisy_fidelity = 0
+            # ideal_trace = 0
+            # noisy_trace = 0
+            ideal_expectation = 0
+            noisy_expectation = 0
 
             # Determine killed flags
             killed_flags = calculate_killed_flags(
@@ -152,36 +165,37 @@ def process_files(service, origin_id, mutants_id):
             try:
                 pattern = r"indep_qiskit_|_output|.pkl"
                 circuit_name = re.sub(pattern, "", filename)
-                #qubits = int(circuit_name.split('_')[1])
-                print(circuit_name)
-                oracle_pkl = load_pickle_content(service, file_id)
-                if isinstance(oracle_pkl, list):
-                    mutant_folder_id = dic_mutant_folders.get(f'mutants_{circuit_name}')
-                    if mutant_folder_id:
-                        mutants_pkl = load_and_merge_files(service, mutant_folder_id)
-                        for threshold in possible_thresholds:
-                            # Define tolerance values
-                            if threshold == 0:
-                                tolerance_values_noisy = {
-                                    'fidelity': 1-0.145435,
-                                    'trace': 0.056261,
-                                    'hellinger': 0.161568,
-                                    'jensenshannon': 0.154298,
-                                    'chisquare': 0.002734,
-                                    'expectation': threshold
-                                }
-                            else:
-                                tolerance_values_noisy = {
-                                    'fidelity': 1 - threshold,
-                                    'trace': threshold,
-                                    'hellinger': threshold,
-                                    'jensenshannon': threshold,
-                                    'chisquare': threshold,
-                                    'expectation': threshold
-                                }
-                            results_df = check_results(oracle_pkl, mutants_pkl, tolerance_values_ideal, tolerance_values_noisy)
-                            os.makedirs(f'results/results_{threshold}', exist_ok=True)
-                            results_df.to_csv(f'results/results_{threshold}/results_{circuit_name}.csv')
+                qubits = int(circuit_name.split('_')[1])
+                if qubits == 7:
+                    print(circuit_name)
+                    oracle_pkl = load_pickle_content(service, file_id)
+                    if isinstance(oracle_pkl, list):
+                        mutant_folder_id = dic_mutant_folders.get(f'mutants_{circuit_name}')
+                        if mutant_folder_id:
+                            mutants_pkl = load_and_merge_files(service, mutant_folder_id)
+                            for threshold in possible_thresholds:
+                                # Define tolerance values
+                                if threshold == 0:
+                                    tolerance_values_noisy = {
+                                        'fidelity': 1-0.145435,
+                                        'trace': 0.056261,
+                                        'hellinger': 0.161568,
+                                        'jensenshannon': 0.154298,
+                                        'chisquare': 0.002734,
+                                        'expectation': threshold
+                                    }
+                                else:
+                                    tolerance_values_noisy = {
+                                        'fidelity': 1 - threshold,
+                                        'trace': threshold,
+                                        'hellinger': threshold,
+                                        'jensenshannon': threshold,
+                                        'chisquare': threshold,
+                                        'expectation': threshold
+                                    }
+                                results_df = check_results(oracle_pkl, mutants_pkl, tolerance_values_ideal, tolerance_values_noisy)
+                                os.makedirs(f'results/results_{threshold}', exist_ok=True)
+                                results_df.to_csv(f'results/results_{threshold}/results_{circuit_name}.csv')
                         else:
                             print(f"No mutant folder found for {circuit_name}")
                     else:
