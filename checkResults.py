@@ -5,7 +5,6 @@ import sys
 
 import pandas as pd
 from tqdm import tqdm
-import itertools
 
 from connectDriveCloud import authenticate_google_drive, load_pickle_content, get_files
 from distances import fidelityCalc, traceDist, getHellinger, compareChisquare, jensenShannonDivergence
@@ -30,7 +29,6 @@ def calculate_killed_flags(ideal, noisy, tolerance_values_ideal, tolerance_value
     killed_flags['Killed_NE'] = noisy['expectation'] > tolerance_values_noisy['expectation']
     return killed_flags
 
-
 def check_results(oracle_data, mutants_data, tolerance_values_ideal, tolerance_values_noisy):
     column_names = ['Name', 'Input', 'Ideal_chisquare', 'Noisy_chisquare', 'Ideal_hellinger', 'Noisy_hellinger',
                     'Ideal_jensenshannon', 'Noisy_jensenshannon', 'Ideal_trace', 'Noisy_trace', 'Ideal_fidelity',
@@ -51,17 +49,17 @@ def check_results(oracle_data, mutants_data, tolerance_values_ideal, tolerance_v
             ideal_chisquare = compareChisquare(oracle_entry['Ideal_output_distribution'],
                                                mutant['Ideal_output_distribution'])
             noisy_chisquare = compareChisquare(oracle_entry['Noisy_output_distribution'],
-                                               mutant['Ideal_output_distribution'])
+                                               mutant['Noisy_output_distribution'])
 
             ideal_hellinger = getHellinger(oracle_entry['Ideal_output_distribution'],
                                            mutant['Ideal_output_distribution'])
             noisy_hellinger = getHellinger(oracle_entry['Noisy_output_distribution'],
-                                           mutant['Ideal_output_distribution'])
+                                           mutant['Noisy_output_distribution'])
 
             ideal_jensenshannon = jensenShannonDivergence(oracle_entry['Ideal_output_distribution'],
                                                mutant['Ideal_output_distribution'])
             noisy_jensenshannon = jensenShannonDivergence(oracle_entry['Noisy_output_distribution'],
-                                               mutant['Ideal_output_distribution'])
+                                               mutant['Noisy_output_distribution'])
 
             ideal_fidelity = fidelityCalc(oracle_entry['Ideal_density_matrix'], mutant['Ideal_density_matrix'])
             noisy_fidelity = fidelityCalc(oracle_entry['Noisy_density_matrix'], mutant['Noisy_density_matrix'])
@@ -143,8 +141,7 @@ def process_files(service, origin_id, mutants_id):
         'chisquare': 0.01,
         'expectation': 0.01
     }
-    possible_thresholds = [0.05,]# 0.05]
-
+    possible_thresholds = [0, 0.01, 0.05, 0.1]
     origin_files = get_files(service, origin_id)
     dic_mutant_folders = get_files_id_dict(service, mutants_id)
 
@@ -153,31 +150,43 @@ def process_files(service, origin_id, mutants_id):
         file_id = item['id']
         if filename.endswith('.pkl'):
             try:
-                oracle_pkl = load_pickle_content(service, file_id)
                 pattern = r"indep_qiskit_|_output|.pkl"
                 circuit_name = re.sub(pattern, "", filename)
+                #qubits = int(circuit_name.split('_')[1])
+                print(circuit_name)
+                oracle_pkl = load_pickle_content(service, file_id)
                 if isinstance(oracle_pkl, list):
                     mutant_folder_id = dic_mutant_folders.get(f'mutants_{circuit_name}')
                     if mutant_folder_id:
                         mutants_pkl = load_and_merge_files(service, mutant_folder_id)
                         for threshold in possible_thresholds:
                             # Define tolerance values
-                            tolerance_values_noisy = {
-                                'fidelity': 1-threshold,
-                                'trace': threshold,
-                                'hellinger': threshold,
-                                'jensenshannon': threshold,
-                                'chisquare': threshold,
-                                'expectation': threshold
-                            }
+                            if threshold == 0:
+                                tolerance_values_noisy = {
+                                    'fidelity': 1-0.145435,
+                                    'trace': 0.056261,
+                                    'hellinger': 0.161568,
+                                    'jensenshannon': 0.154298,
+                                    'chisquare': 0.002734,
+                                    'expectation': threshold
+                                }
+                            else:
+                                tolerance_values_noisy = {
+                                    'fidelity': 1 - threshold,
+                                    'trace': threshold,
+                                    'hellinger': threshold,
+                                    'jensenshannon': threshold,
+                                    'chisquare': threshold,
+                                    'expectation': threshold
+                                }
                             results_df = check_results(oracle_pkl, mutants_pkl, tolerance_values_ideal, tolerance_values_noisy)
                             os.makedirs(f'results/results_{threshold}', exist_ok=True)
                             results_df.to_csv(f'results/results_{threshold}/results_{circuit_name}.csv')
+                        else:
+                            print(f"No mutant folder found for {circuit_name}")
                     else:
-                        print(f"No mutant folder found for {circuit_name}")
-                else:
-                    print(f"Pickle file should contain a List instead of a {type(oracle_pkl)}.")
-                    sys.exit(1)
+                        print(f"Pickle file should contain a List instead of a {type(oracle_pkl)}.")
+                        sys.exit(1)
             except pickle.UnpicklingError:
                 print(f'Error unpickling file: {filename}')
             except Exception as e:
@@ -190,7 +199,6 @@ def main():
 
     service = authenticate_google_drive()
     process_files(service, origin_id, all_mutants_id)
-
 
 if __name__ == "__main__":
     main()
