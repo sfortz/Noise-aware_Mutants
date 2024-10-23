@@ -114,3 +114,5 @@ wcwidth==0.2.13
 webcolors==24.6.0
 webencodings==0.5.1
 websocket-client==1.8.0
+orca==1.8
+scikit-learn==1.5.2
