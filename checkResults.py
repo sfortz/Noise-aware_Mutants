@@ -67,8 +67,8 @@ def check_results(oracle_data, mutants_data, tolerance_values_ideal, tolerance_v
             ideal_trace = traceDist(oracle_entry['Ideal_density_matrix'], mutant['Ideal_density_matrix'])
             noisy_trace = traceDist(oracle_entry['Ideal_density_matrix'], mutant['Noisy_density_matrix'])
 
-            # ideal_expectation = abs(oracle_entry['Ideal_expectation_value']-mutant['Ideal_expectation_value'])
-            # noisy_expectation = abs(oracle_entry['Ideal_expectation_value']-mutant['Noisy_expectation_value'])
+            ideal_expectation = abs(oracle_entry['Ideal_expectation_value']-mutant['Ideal_expectation_value'])
+            noisy_expectation = abs(oracle_entry['Ideal_expectation_value']-mutant['Noisy_expectation_value'])
 
             # ideal_chisquare = 0
             # noisy_chisquare = 0
@@ -80,8 +80,8 @@ def check_results(oracle_data, mutants_data, tolerance_values_ideal, tolerance_v
             # noisy_fidelity = 0
             # ideal_trace = 0
             # noisy_trace = 0
-            ideal_expectation = 0
-            noisy_expectation = 0
+            # ideal_expectation = 0
+            # noisy_expectation = 0
 
             # Determine killed flags
             killed_flags = calculate_killed_flags(
@@ -177,12 +177,12 @@ def process_files(service, origin_id, mutants_id):
                                 # Define tolerance values
                                 if threshold == 0:
                                     tolerance_values_noisy = {
-                                        'fidelity': 1-0.145435,
-                                        'trace': 0.056261,
-                                        'hellinger': 0.161568,
-                                        'jensenshannon': 0.154298,
-                                        'chisquare': 0.002734,
-                                        'expectation': threshold
+                                        'fidelity': 1-0.052656,
+                                        'trace': 0.019497,
+                                        'hellinger': 0.122947,
+                                        'jensenshannon': 0.111007,
+                                        'chisquare': 0.032387,
+                                        'expectation': 0.07077
                                     }
                                 else:
                                     tolerance_values_noisy = {
@@ -209,8 +209,8 @@ def process_files(service, origin_id, mutants_id):
 
 # If you obtain a Google authentication error, just delete the tocken.pickle file.
 def main():
-    origin_id = "1qIt65m7cuVMHVkLZkRgc-_dxwc041hvU"
-    all_mutants_id = "1sJsLBaTrD0AWg6J0Eu9hKMaZBn8bkFLt"
+    origin_id = "1p2toGbzc3bAITMic7J1nYccjdkTFpOor"
+    all_mutants_id = "1hcp2hGbxutPwpwaqdJt0_zvqXzr5tI3b"
 
     service = authenticate_google_drive()
     process_files(service, origin_id, all_mutants_id)
