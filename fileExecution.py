@@ -1,6 +1,8 @@
 import sys
 import os
 import pickle
+
+import pandas as pd
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp
 from qiskit_aer import AerSimulator
@@ -9,17 +11,23 @@ from qiskit_ibm_runtime import QiskitRuntimeService
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit_ibm_runtime import EstimatorV2 as Estimator
 
+from noisemodel import get_noise_model
+
 # Save an IBM Quantum account.
-service = QiskitRuntimeService()
+# service = QiskitRuntimeService(channel="ibm_quantum", token="67ae1be6477a413c62411bc6120a39ab6244f3037c3439013e07f9d2509efba39d3329f7adee6622cc6136cce7cf0dfffbeae95433f9d613a6c84b7de61e6913")
+#
+# # Get noisy_simulator
+# ideal_simulator = AerSimulator()
+#
+# # Get noisy_simulator
+# noisy_backend = service.backend("ibm_sherbrooke")
+# noise_model = NoiseModel.from_backend(noisy_backend)
 
-
-# Get noisy_simulator
-ideal_simulator = AerSimulator()
-
-# Get noisy_simulator
-noisy_backend = service.backend("ibm_sherbrooke")
-noise_model = NoiseModel.from_backend(noisy_backend)
+calibration_df = pd.read_csv("calibration_values/ibm_sherbrooke_calibrations_2024-10-23T09_03_10Z.csv")
+gates = ['ecr', 'id', 'rz', 'sx', 'x']
+noise_model = get_noise_model(calibration_df, gates)
 noisy_simulator = AerSimulator(noise_model=noise_model)
+ideal_simulator = AerSimulator()
 
 
 def circuit_initialization(qc, input):
