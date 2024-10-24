@@ -43,12 +43,16 @@ def normalize_distribution(distribution):
 
 
 def compareChisquare(oracle_output, mutant_output):
+
     expected, observed = parse_distribution(oracle_output, mutant_output)
     expected, observed, _ = align_distributions(expected, observed)
 
     # Add epsilon to prevent zero frequencies
     epsilon = 1e-10
     expected = {k: v + epsilon for k, v in expected.items()}
+    # Sorting the dictionary by keys
+    expected = dict(sorted(expected.items()))
+    observed = dict(sorted(observed.items()))
 
     result = chisquare(list(observed.values()), list(expected.values()))
     return result[1]  # p-value

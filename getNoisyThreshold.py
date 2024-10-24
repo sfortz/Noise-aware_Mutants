@@ -54,7 +54,7 @@ def process_files(service, origin_id):
             try:
                 pattern = r"indep_qiskit_|_output|.pkl"
                 circuit_name = re.sub(pattern, "", filename)
-                print(circuit_name)
+                #print(circuit_name)
                 oracle_pkl = load_pickle_content(service, file_id)
                 if isinstance(oracle_pkl, list):
                         new_df = get_noisy_thresholds(oracle_pkl)
@@ -66,7 +66,7 @@ def process_files(service, origin_id):
                 print(f'Error unpickling file: {filename}')
             except Exception as e:
                 print(f'Error processing file {filename}: {str(e)}')
-    #print(df_total)
+    print(df_total)
     mean_values = df_total.iloc[:, 2:].mean()
     print('Mean: ')
     print(mean_values)
@@ -77,8 +77,16 @@ def process_files(service, origin_id):
     std_error = std_dev / np.sqrt(n)
     print('Standard error: ')
     print(std_error)
+    print('Threshold: ')
+    print(f"Chisquare: {mean_values['Chisquare'] + std_error['Chisquare']}")
+    print(f"Hellinger: {mean_values['Hellinger'] + std_error['Hellinger']}")
+    print(f"Jensenshannon: {mean_values['Jensenshannon'] + std_error['Jensenshannon']}")
+    print(f"Trace: {mean_values['Trace'] + std_error['Trace']}")
+    print(f"Fidelity: {(1-mean_values['Fidelity']) + std_error['Fidelity']}")
+    print(f"Expectation: {mean_values['Expectation'] + std_error['Expectation']}")
+
 def main():
-    origin_id = "1p2toGbzc3bAITMic7J1nYccjdkTFpOor"
+    origin_id = "1KwVgDjVn_FtlqytaUJjn2ZYQLgN7xo44"
     service = authenticate_google_drive()
     process_files(service, origin_id)
 

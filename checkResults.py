@@ -147,14 +147,14 @@ def load_and_merge_files(service, folder_id):
 def process_files(service, origin_id, mutants_id):
     # Define tolerance values
     tolerance_values_ideal = {
-        'fidelity': 1 - 1e-5,
-        'trace': 1e-5,
-        'hellinger': 0.01,
-        'jensenshannon': 0.01,
-        'chisquare': 0.01,
-        'expectation': 0.01
+        'fidelity': 1 - 0.0000001,
+        'trace': 0.0000001,
+        'hellinger': 0.1,
+        'jensenshannon': 0.1,
+        'chisquare': 0.0000001,
+        'expectation': 0.0000001
     }
-    possible_thresholds = [0, 0.01, 0.05, 0.1]
+    possible_thresholds = [0, 0.01, 0.5, 0.8]
     origin_files = get_files(service, origin_id)
     dic_mutant_folders = get_files_id_dict(service, mutants_id)
 
@@ -166,23 +166,25 @@ def process_files(service, origin_id, mutants_id):
                 pattern = r"indep_qiskit_|_output|.pkl"
                 circuit_name = re.sub(pattern, "", filename)
                 qubits = int(circuit_name.split('_')[1])
-                if qubits <= 6:
+                if qubits <= 5:
                     print(circuit_name)
                     oracle_pkl = load_pickle_content(service, file_id)
                     if isinstance(oracle_pkl, list):
-                        mutant_folder_id = dic_mutant_folders.get(f'mutants_{circuit_name}')
+                        mutant_folder_id = dic_mutant_folders.get(f'equivalent_mutants_{circuit_name}')
                         if mutant_folder_id:
                             mutants_pkl = load_and_merge_files(service, mutant_folder_id)
+                            # print(f'Oracle:{oracle_pkl}')
+                            # print(f'Mutants:{mutants_pkl}')
                             for threshold in possible_thresholds:
                                 # Define tolerance values
                                 if threshold == 0:
                                     tolerance_values_noisy = {
-                                        'fidelity': 1-0.052656,
-                                        'trace': 0.019497,
-                                        'hellinger': 0.122947,
-                                        'jensenshannon': 0.111007,
-                                        'chisquare': 0.032387,
-                                        'expectation': 0.07077
+                                        'fidelity': 1-0.96806,
+                                        'trace': 0.92637,
+                                        'hellinger': 0.86681,
+                                        'jensenshannon': 0.74946,
+                                        'chisquare': 0.00001,
+                                        'expectation': 0.73897
                                     }
                                 else:
                                     tolerance_values_noisy = {
@@ -194,8 +196,8 @@ def process_files(service, origin_id, mutants_id):
                                         'expectation': threshold
                                     }
                                 results_df = check_results(oracle_pkl, mutants_pkl, tolerance_values_ideal, tolerance_values_noisy)
-                                os.makedirs(f'results/results_{threshold}', exist_ok=True)
-                                results_df.to_csv(f'results/results_{threshold}/results_{circuit_name}.csv')
+                                os.makedirs(f'results_custom_brisbane/results_equiv_{threshold}', exist_ok=True)
+                                results_df.to_csv(f'results_custom_brisbane/results_equiv_{threshold}/results_{circuit_name}.csv')
                         else:
                             print(f"No mutant folder found for {circuit_name}")
                     else:
@@ -209,8 +211,8 @@ def process_files(service, origin_id, mutants_id):
 
 # If you obtain a Google authentication error, just delete the tocken.pickle file.
 def main():
-    origin_id = "1p2toGbzc3bAITMic7J1nYccjdkTFpOor"
-    all_mutants_id = "1hcp2hGbxutPwpwaqdJt0_zvqXzr5tI3b"
+    origin_id = "1KwVgDjVn_FtlqytaUJjn2ZYQLgN7xo44"
+    all_mutants_id = "1V6THrHxPmkMYjJ2bkud9Vf1ZTFy6-IVr"
 
     service = authenticate_google_drive()
     process_files(service, origin_id, all_mutants_id)
