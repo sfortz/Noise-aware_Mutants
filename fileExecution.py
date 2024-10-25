@@ -24,8 +24,8 @@ from noisemodel import get_noise_model
 # noise_model = NoiseModel.from_backend(noisy_backend)
 
 calibration_df = pd.read_csv("calibration_values/ibm_sherbrooke_calibrations_2024-10-23T09_03_10Z.csv")
-gates = ['ecr', 'id', 'rz', 'sx', 'x']
-noise_model = get_noise_model(calibration_df, gates)
+basis_gates = ['ecr', 'id', 'rz', 'sx', 'x']
+noise_model = get_noise_model(calibration_df, basis_gates)
 noisy_simulator = AerSimulator(noise_model=noise_model)
 ideal_simulator = AerSimulator()
 
@@ -87,7 +87,6 @@ def final_density_matrix(qc_init):
 
     # Transpile
     pm_ideal = generate_preset_pass_manager(backend=ideal_simulator, optimization_level=0, seed_transpiler=128)
-    basis_gates = ["h", "cx", "cp", "swap", "barrier", "measure"]
     pm_noisy = generate_preset_pass_manager(backend=noisy_simulator, optimization_level=0, seed_transpiler=128,
                                             basis_gates=basis_gates)
     isa_circuit_ideal = pm_ideal.run(qc_init)
