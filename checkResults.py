@@ -144,17 +144,48 @@ def load_and_merge_files(service, folder_id):
     return merged_data
 
 
-def process_files(service, origin_id, mutants_id):
+def getModelTolerance(model):
+    if model == 'brisbane':
+        tolerance_values_noisy = {
+            'fidelity': 1 - 0.9818071588272935,
+            'trace': 0.9474790361650993,
+            'hellinger': 0.9001136659697,
+            'jensenshannon': 0.7718372511093367,
+            'chisquare': 8.822528185214266e-158,
+            'expectation': 0.7070786758337857
+        }
+    elif model == 'sheerbroke':
+        tolerance_values_noisy = {
+            'fidelity': 1 - 0.9817918801809562,
+            'trace': 0.9165467778554671,
+            'hellinger': 0.8723835633308122,
+            'jensenshannon': 0.7525100350370049,
+            'chisquare': 3.1954543753995917e-141,
+            'expectation': 0.5896550492107876
+        }
+    elif model == 'kyiv':
+        tolerance_values_noisy = {
+            'fidelity': 1 - 0.9817973573897236,
+            'trace': 0.9134759188590066,
+            'hellinger': 0.8760278316636461,
+            'jensenshannon': 0.7549426398105366,
+            'chisquare': 5.687357104528032e-162,
+            'expectation': 0.6140893479852809
+        }
+    return tolerance_values_noisy
+
+
+def process_files(service, origin_id, mutants_id, model, mutant):
     # Define tolerance values
     tolerance_values_ideal = {
-        'fidelity': 1 - 0.0000001,
-        'trace': 0.0000001,
-        'hellinger': 0.1,
-        'jensenshannon': 0.1,
-        'chisquare': 0.0000001,
-        'expectation': 0.0000001
+        'fidelity': 1 - 1e-14,
+        'trace': 1e-13,
+        'hellinger': 0.13455009062719828,
+        'jensenshannon': 0.11716009455796059,
+        'chisquare': 0.318714816155845,
+        'expectation': 0
     }
-    possible_thresholds = [0, 0.01, 0.5, 0.8]
+    possible_thresholds = ['A', 'I', 'N', 0.8, 0.5, 0.1]
     origin_files = get_files(service, origin_id)
     dic_mutant_folders = get_files_id_dict(service, mutants_id)
 
@@ -166,25 +197,31 @@ def process_files(service, origin_id, mutants_id):
                 pattern = r"indep_qiskit_|_output|.pkl"
                 circuit_name = re.sub(pattern, "", filename)
                 qubits = int(circuit_name.split('_')[1])
-                if qubits <= 5:
+                if qubits <= 8:
                     print(circuit_name)
                     oracle_pkl = load_pickle_content(service, file_id)
                     if isinstance(oracle_pkl, list):
-                        mutant_folder_id = dic_mutant_folders.get(f'equivalent_mutants_{circuit_name}')
+                        if mutant =='equiv':
+                            mutant_folder_id = dic_mutant_folders.get(f'selected_equivalent_mutants_{circuit_name}')
+                        else:
+                            mutant_folder_id = dic_mutant_folders.get(f'mutants_{circuit_name}')
                         if mutant_folder_id:
                             mutants_pkl = load_and_merge_files(service, mutant_folder_id)
-                            # print(f'Oracle:{oracle_pkl}')
-                            # print(f'Mutants:{mutants_pkl}')
                             for threshold in possible_thresholds:
                                 # Define tolerance values
-                                if threshold == 0:
+                                if threshold == 'I':
+                                    tolerance_values_noisy = tolerance_values_ideal
+                                elif threshold == 'N':
+                                    tolerance_values_noisy = getModelTolerance(model)
+                                elif threshold == 'A':
+                                    tolerance_values_noisy = getModelTolerance(model)
                                     tolerance_values_noisy = {
-                                        'fidelity': 1-0.96806,
-                                        'trace': 0.92637,
-                                        'hellinger': 0.86681,
-                                        'jensenshannon': 0.74946,
-                                        'chisquare': 0.00001,
-                                        'expectation': 0.73897
+                                        'fidelity': 1 - ((1 - tolerance_values_noisy['fidelity']) + (1 - tolerance_values_ideal['fidelity'])),
+                                        'trace': tolerance_values_noisy['trace'] + tolerance_values_ideal['trace'],
+                                        'hellinger': tolerance_values_noisy['hellinger'] + tolerance_values_ideal['hellinger'],
+                                        'jensenshannon': tolerance_values_noisy['jensenshannon'] + tolerance_values_ideal['jensenshannon'],
+                                        'chisquare': tolerance_values_noisy['chisquare'] + tolerance_values_ideal['chisquare'],
+                                        'expectation': tolerance_values_noisy['expectation'] + tolerance_values_ideal['expectation']
                                     }
                                 else:
                                     tolerance_values_noisy = {
@@ -196,8 +233,8 @@ def process_files(service, origin_id, mutants_id):
                                         'expectation': threshold
                                     }
                                 results_df = check_results(oracle_pkl, mutants_pkl, tolerance_values_ideal, tolerance_values_noisy)
-                                os.makedirs(f'results_custom_brisbane/results_equiv_{threshold}', exist_ok=True)
-                                results_df.to_csv(f'results_custom_brisbane/results_equiv_{threshold}/results_{circuit_name}.csv')
+                                os.makedirs(f'results_{model}/results_{mutant}_{threshold}', exist_ok=True)
+                                results_df.to_csv(f'results_{model}/results_{mutant}_{threshold}/results_{circuit_name}.csv')
                         else:
                             print(f"No mutant folder found for {circuit_name}")
                     else:
@@ -211,11 +248,30 @@ def process_files(service, origin_id, mutants_id):
 
 # If you obtain a Google authentication error, just delete the tocken.pickle file.
 def main():
-    origin_id = "1KwVgDjVn_FtlqytaUJjn2ZYQLgN7xo44"
-    all_mutants_id = "1V6THrHxPmkMYjJ2bkud9Vf1ZTFy6-IVr"
-
-    service = authenticate_google_drive()
-    process_files(service, origin_id, all_mutants_id)
+    models = ['brisbane', 'sheerbroke', 'kyiv']
+    mutants = ['equiv', 'normal']
+    for model in models:
+        for mutant in mutants:
+            if model == 'brisbane':
+                origin_id = "1MTTleRgnFJ2UnYmbpzZoh2ndmWBJ3YJk"
+                if mutant == 'equiv':
+                    all_mutants_id = "1TuXmlQAARKVeOm4nTWSJBmI500Tns4aZ"
+                else:
+                    all_mutants_id = "1DlLaLyxSD5c0C1MqkCDlbrFvNrNLPo3e"
+            elif model == 'sheerbroke':
+                origin_id = "1mw2IXGwDlNYBaJ257fTWvbgn6uIFR_GE"
+                if mutant == 'equiv':
+                    all_mutants_id = "1LD99TCdLYlvdueVw3lFDS095LQnXHDXZ"
+                else:
+                    all_mutants_id = "1O6AGfEN3jXT2wIJv8Cdm639jdBTzr2tC"
+            elif model == 'kyiv':
+                origin_id = "1ZIiXv5wI-YjaxKaGR4CvXvfAKft-UwWJ"
+                if mutant == 'equiv':
+                    all_mutants_id = "1OsML98uRWNy-TKAQvQs-7bDGjrTne649"
+                else:
+                    all_mutants_id = "1Tqrv71qeMNIYnrW0CItiifaRPZO3h6hc"
+            service = authenticate_google_drive()
+            process_files(service, origin_id, all_mutants_id, model, mutant)
 
 if __name__ == "__main__":
     main()
