@@ -175,7 +175,8 @@ def process_files(service, origin_id, mutants_id, model, mutant):
                 # Extract circuit name and number of qubits
                 circuit_name = re.sub(r"indep_qiskit_|_output|.pkl", "", filename)
 
-                if circuit_name not in {'qpeexact_8', 'vqe_8', 'wstate_8'}:
+                qubits = int(circuit_name.split('_')[1])
+                if qubits <= 8: #circuit_name not in {'ae_8'}:
                     continue  # Skip if name do not match specific criteria
 
                 oracle_pkl = load_pickle_content(service, file_id)
@@ -232,8 +233,8 @@ def process_files(service, origin_id, mutants_id, model, mutant):
 
 # If you obtain a Google authentication error, just delete the tocken.pickle file.
 def main():
-    models = ['brisbane']  #, 'sheerbroke', 'brisbane']
-    mutants = ['equiv']  #, 'normal']
+    models = ['kyiv', 'sheerbroke', 'brisbane']
+    mutants = ['equiv', 'normal']
     for model in models:
         print("============================================================================================")
         print("Executing model", model)
