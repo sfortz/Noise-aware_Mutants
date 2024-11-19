@@ -23,42 +23,32 @@ def get_noisy_thresholds(oracle_data):
         jensen = jensenShannonDivergence(value['Ideal_output_distribution'], value['Noisy_output_distribution'])
         fidelity = fidelityCalc(value['Ideal_density_matrix'], value['Noisy_density_matrix'])
         trace = traceDist(value['Ideal_density_matrix'], value['Noisy_density_matrix'])
-        expectation = abs(value['Ideal_expectation_value']-value['Noisy_expectation_value'])
-        # chisquare = 0
-        # hellinger = 0
-        # jensen = 0
-        # fidelity = 0
-        # trace = 0
-        # expectation = 0
+        expectation = abs(value['Ideal_expectation_value'] - value['Noisy_expectation_value'])
         name = value['Name'].split('/')[-1]
-        new_line = {'Name': name, 'Input': value['Input'], 'Chisquare': chisquare, 'Hellinger': hellinger, 'Jensenshannon': jensen, 'Trace': trace, 'Fidelity': fidelity, 'Expectation': expectation}
+        new_line = {'Name': name, 'Input': value['Input'], 'Chisquare': chisquare, 'Hellinger': hellinger,
+                    'Jensenshannon': jensen, 'Trace': trace, 'Fidelity': fidelity, 'Expectation': expectation}
         results.append(new_line)
 
-    # Convert the results list of dictionaries to a DataFrame
     results_df = pd.DataFrame(results, columns=column_names)
-    # mean_values = results_df.iloc[:, 2:].mean()  # Exclude the 'Name' column
-    # mean_row = pd.DataFrame([mean_values])
-    # mean_row.insert(0, 'Name', name)  # Insert 'Name' column
 
     return results_df
 
 
 def process_files(service, origin_id):
-
     origin_files = get_files(service, origin_id)
-    df_total = pd.DataFrame(columns=['Name', 'Input', 'Chisquare', 'Hellinger', 'Jensenshannon', 'Trace', 'Fidelity', 'Expectation'])
+    df_list = []
     for item in tqdm(origin_files, desc="Checking results..."):
         filename = item['name']
         file_id = item['id']
         if filename.endswith('.pkl'):
             try:
-                pattern = r"indep_qiskit_|_output|.pkl"
-                circuit_name = re.sub(pattern, "", filename)
-                #print(circuit_name)
+                # pattern = r"indep_qiskit_|_output|.pkl"
+                # circuit_name = re.sub(pattern, "", filename)
+                # print(circuit_name)
                 oracle_pkl = load_pickle_content(service, file_id)
                 if isinstance(oracle_pkl, list):
-                        new_df = get_noisy_thresholds(oracle_pkl)
-                        df_total = pd.concat([df_total, new_df], ignore_index=True)
+                    new_df = get_noisy_thresholds(oracle_pkl)
+                    df_list.append(new_df)
                 else:
                     print(f"Pickle file should contain a List instead of a {type(oracle_pkl)}.")
                     sys.exit(1)
@@ -66,6 +56,7 @@ def process_files(service, origin_id):
                 print(f'Error unpickling file: {filename}')
             except Exception as e:
                 print(f'Error processing file {filename}: {str(e)}')
+    df_total = pd.concat(df_list, ignore_index=True)
     print(df_total)
     mean_values = df_total.iloc[:, 2:].mean()
     print('Mean: ')
@@ -82,13 +73,24 @@ def process_files(service, origin_id):
     print(f"Hellinger: {mean_values['Hellinger'] + std_error['Hellinger']}")
     print(f"Jensenshannon: {mean_values['Jensenshannon'] + std_error['Jensenshannon']}")
     print(f"Trace: {mean_values['Trace'] + std_error['Trace']}")
-    print(f"Fidelity: {(1-mean_values['Fidelity']) + std_error['Fidelity']}")
+    print(f"Fidelity: {(1 - mean_values['Fidelity']) + std_error['Fidelity']}")
     print(f"Expectation: {mean_values['Expectation'] + std_error['Expectation']}")
 
+
 def main():
-    origin_id = "1ZIiXv5wI-YjaxKaGR4CvXvfAKft-UwWJ"
-    service = authenticate_google_drive()
-    process_files(service, origin_id)
+    models = ['brisbane', 'sherbrooke', 'kyiv']
+    for model in models:
+        if model == 'brisbane':
+            origin_id = "1MTTleRgnFJ2UnYmbpzZoh2ndmWBJ3YJk"
+        elif model == 'sherbrooke':
+            origin_id = "1mw2IXGwDlNYBaJ257fTWvbgn6uIFR_GE"
+        elif model == 'kyiv':
+            origin_id = "1ZIiXv5wI-YjaxKaGR4CvXvfAKft-UwWJ"
+        else:
+            origin_id = None
+        service = authenticate_google_drive()
+        process_files(service, origin_id)
+
 
 if __name__ == "__main__":
     main()
