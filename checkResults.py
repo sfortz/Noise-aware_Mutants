@@ -215,6 +215,7 @@ def process_files(service, origin_id, mutants_id, model, mutant):
     tolerance_values_ideal = get_tolerance_values_noisy(model, 'I')
     dic_noisy_tolerance = {}
     for threshold in possible_thresholds:
+        os.makedirs(f'results_{model}/results_{mutant}_{threshold}', exist_ok=True)
         dic_noisy_tolerance[threshold] = get_tolerance_values_noisy(model, threshold)
 
     origin_files = get_files(service, origin_id)
@@ -228,7 +229,7 @@ def process_files(service, origin_id, mutants_id, model, mutant):
                 pattern = r"indep_qiskit_|_output|.pkl"
                 circuit_name = re.sub(pattern, "", filename)
                 qubits = int(circuit_name.split('_')[1])
-                if qubits == 8:
+                if qubits <= 7:
                     print(circuit_name)
                     oracle_pkl = load_pickle_content(service, file_id)
                     if isinstance(oracle_pkl, list):
@@ -242,9 +243,7 @@ def process_files(service, origin_id, mutants_id, model, mutant):
                                 tolerance_values_noisy = dic_noisy_tolerance[threshold]
                                 results_df = check_results(oracle_pkl, mutants_pkl, tolerance_values_ideal,
                                                            tolerance_values_noisy)
-                                os.makedirs(f'results_{model}/results_{mutant}_{threshold}', exist_ok=True)
-                                results_df.to_csv(
-                                    f'results_{model}/results_{mutant}_{threshold}/results_{circuit_name}.csv')
+                                results_df.to_csv(f'results_{model}/results_{mutant}_{threshold}/results_{circuit_name}.csv')
                         else:
                             print(f"No mutant folder found for {circuit_name}")
                     else:
@@ -259,7 +258,7 @@ def process_files(service, origin_id, mutants_id, model, mutant):
 # If you obtain a Google authentication error, just delete the tocken.pickle file.
 def main():
     models = ['kyiv'] #['brisbane', 'sherbrooke', 'kyiv']
-    mutants = ['equiv', 'normal']
+    mutants = ['normal'] #['equiv', 'normal']
     for model in models:
         for mutant in mutants:
             print("============================================================================================")
