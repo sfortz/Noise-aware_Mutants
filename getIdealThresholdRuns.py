@@ -1,13 +1,13 @@
 import pickle
-import re
+import sys
 
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from connectDriveCloud import authenticate_google_drive, load_pickle_content, get_files
+from connectDriveCloud import authenticate_google_drive, load_pickle_content, get_files, get_folders
 from distances import fidelityCalc, traceDist, getHellinger, compareChisquare, jensenShannonDivergence
-
+from qiskit.quantum_info import Operator
 
 def get_theoretical_distribution(density_matrix, nb_shots):
     # Extract the diagonal elements (probabilities)
@@ -55,6 +55,29 @@ def get_theoretical_distribution(density_matrix, nb_shots):
     return count_dict
 
 
+def get_theoretical_expectation_value(density_matrix):
+    # Determine the number of qubits
+    dim = density_matrix.data.shape[0]
+    num_qubits = int(np.log2(dim))
+
+    if 2**num_qubits != dim:
+        raise ValueError("Density matrix size must be a power of 2 (2^n x 2^n).")
+
+    # Create the multi-qubit Z operator
+    single_qubit_z = np.array([[1, 0], [0, -1]])  # Z operator for one qubit
+    z_operator = single_qubit_z  # Start with the single-qubit Z
+    for _ in range(1, num_qubits):  # Extend for multi-qubit systems
+        z_operator = np.kron(z_operator, single_qubit_z)
+
+    # Convert Z operator to Qiskit Operator
+    z_operator = Operator(z_operator)
+
+    # Compute the expectation value: Tr(rho * Z)
+    expectation_value = np.trace(density_matrix.data @ z_operator.data).real
+
+    return expectation_value
+
+
 def get_ideal_thresholds(oracle_data):
     column_names = ['Name', 'Input', 'Chisquare', 'Hellinger', 'Jensenshannon', 'Trace', 'Fidelity', 'Expectation']
     # Convert the oracle_data list of dictionaries into a lookup dictionary for faster access
@@ -62,7 +85,6 @@ def get_ideal_thresholds(oracle_data):
 
     results = []
     for key, value in oracle_lookup.items():
-
         # Theoretical distribution
         theoretical_distribution = get_theoretical_distribution(value['Ideal_density_matrix'], 10000)
 
@@ -71,15 +93,16 @@ def get_ideal_thresholds(oracle_data):
 
         hellinger = getHellinger(theoretical_distribution, observed_distribution)
         jensen = jensenShannonDivergence(theoretical_distribution, observed_distribution)
-        chisquare = compareChisquare(theoretical_distribution, observed_distribution)
+        chisquare = 0 #compareChisquare(theoretical_distribution, observed_distribution)
 
-        #fidelity = fidelityCalc(value['Theoretical_output_distribution'], value['Ideal_density_matrix'])
-        #trace = traceDist(value['Theoretical_output_distribution'], value['Ideal_density_matrix'])
         #expectation = abs(value['Theoretical_output_distribution'] - value['Ideal_expectation_value'])
-        name = value['Name'].split('/')[-1]
+        theoretical_expectation_value = get_theoretical_expectation_value(value['Ideal_density_matrix'])
+        expectation = abs(theoretical_expectation_value - value['Ideal_expectation_value'])
+
         fidelity = 0
         trace = 0
-        expectation = 0
+
+        name = value['Name'].split('/')[-1]
         new_line = {'Name': name, 'Input': value['Input'], 'Chisquare': chisquare, 'Hellinger': hellinger,
                     'Jensenshannon': jensen, 'Trace': trace, 'Fidelity': fidelity, 'Expectation': expectation}
         results.append(new_line)
@@ -91,49 +114,85 @@ def get_ideal_thresholds(oracle_data):
 
 def process_files(service, origin_id):
     origin_files = get_files(service, origin_id)
-    df_total = pd.DataFrame(
-        columns=['Name', 'Input', 'Chisquare', 'Hellinger', 'Jensenshannon', 'Trace', 'Fidelity', 'Expectation'])
+    df_list = []
     for item in tqdm(origin_files, desc="Checking results..."):
         filename = item['name']
         file_id = item['id']
         if filename.endswith('.pkl'):
             try:
-                pattern = r"indep_qiskit_|_output|.pkl"
-                circuit_name = re.sub(pattern, "", filename)
                 oracle_pkl = load_pickle_content(service, file_id)
                 if isinstance(oracle_pkl, list):
                     new_df = get_ideal_thresholds(oracle_pkl)
-                    df_total = pd.concat([df_total, new_df], ignore_index=True)
+                    df_list.append(new_df)
                 else:
                     print(f"Pickle file should contain a List instead of a {type(oracle_pkl)}.")
             except pickle.UnpicklingError:
                 print(f'Error unpickling file: {filename}')
             except Exception as e:
                 print(f'Error processing file {filename}: {str(e)}')
-    print(df_total)
-    mean_values = df_total.iloc[:, 2:].mean()
+
+    df_total = pd.concat(df_list, ignore_index=True)
+    # print(df_total)
+    return df_total
+
+
+def display_thresholds(runs_df_list):
+    # Select numeric and non-numeric columns separately
+    numeric_columns = runs_df_list[0].select_dtypes(include=[np.number]).columns
+    non_numeric_columns = runs_df_list[0].select_dtypes(exclude=[np.number]).columns
+
+    # Stack only the numeric columns of all DataFrames
+    stacked_array = np.stack([df[numeric_columns].values for df in runs_df_list], axis=0)
+
+    # Calculate the mean and standard deviation for the numeric columns
+    mean_df = pd.DataFrame(np.mean(stacked_array, axis=0), columns=numeric_columns)
+    std_df = pd.DataFrame(np.std(stacked_array, axis=0), columns=numeric_columns)
+
+    # For non-numeric columns, just take the first DataFrame (since they are the same across all)
+    non_numeric_df = runs_df_list[0][non_numeric_columns]
+
+    # Combine the results: concatenate mean, std, and non-numeric columns
+    # First, combine mean and std for numeric columns
+    combined_numeric_df = pd.concat([mean_df, std_df], axis=1, keys=["mean", "std"])
+    combined_numeric_df.columns = ['_'.join(map(str, col)) for col in combined_numeric_df.columns]
+
+    # Now add non-numeric columns to the final result
+    final_df = pd.concat([combined_numeric_df, non_numeric_df], axis=1)
+
+    #print(final_df)
+    values = final_df.iloc[:, :-2].median()
+    n = len(final_df)  # Number of observations
+    print('----------------------------------------')
     print('Mean: ')
-    print(mean_values)
-    std_dev = df_total.iloc[:, 2:].std()
+    print(values[['mean_Chisquare', 'mean_Hellinger', 'mean_Jensenshannon', 'mean_Trace', 'mean_Fidelity',
+                  'mean_Expectation']])
+    print('----------------------------------------')
     print('Standard deviation: ')
-    print(std_dev)
-    n = len(df_total)  # Number of observations
-    std_error = std_dev / np.sqrt(n)
-    print('Standard error: ')
-    print(std_error)
+    print(
+        values[['std_Chisquare', 'std_Hellinger', 'std_Jensenshannon', 'std_Trace', 'std_Fidelity', 'std_Expectation']])
+    print('----------------------------------------')
     print('Threshold: ')
-    print(f"Chisquare: {mean_values['Chisquare'] + std_error['Chisquare']}")
-    print(f"Hellinger: {mean_values['Hellinger'] + std_error['Hellinger']}")
-    print(f"Jensenshannon: {mean_values['Jensenshannon'] + std_error['Jensenshannon']}")
-    print(f"Trace: {mean_values['Trace'] + std_error['Trace']}")
-    print(f"Fidelity: {(1 - mean_values['Fidelity']) + std_error['Fidelity']}")
-    print(f"Expectation: {mean_values['Expectation'] + std_error['Expectation']}")
+    print(f"Chisquare: {values['mean_Chisquare'] + values['std_Chisquare'] / np.sqrt(n)}")
+    print(f"Hellinger: {values['mean_Hellinger'] + values['std_Hellinger'] / np.sqrt(n)}")
+    print(f"Jensenshannon: {values['mean_Jensenshannon'] + values['std_Jensenshannon'] / np.sqrt(n)}")
+    print(f"Trace: {values['mean_Trace'] + values['std_Trace'] / np.sqrt(n)}")
+    print(f"Fidelity: {1 - (1 - values['mean_Fidelity']) + values['std_Fidelity'] / np.sqrt(n)}")
+    print(f"Expectation: {values['mean_Expectation'] + values['std_Expectation'] / np.sqrt(n)}")
+    print('----------------------------------------')
 
 
 def main():
-    origin_id = "1MTTleRgnFJ2UnYmbpzZoh2ndmWBJ3YJk"
+    folder_id = '1qHHcCyRLrDAN_rHshIHrPo_rxgRH1rPN' # Fake_Brisbane origin_qc folder
+
     service = authenticate_google_drive()
-    process_files(service, origin_id)
+    runs = get_folders(service, folder_id)
+    runs_df_list = []
+    for run in runs:
+        run_id = run['id']
+        df_run = process_files(service, run_id)
+        runs_df_list.append(df_run)
+
+    display_thresholds(runs_df_list)
 
 
 if __name__ == "__main__":
