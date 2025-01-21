@@ -25,7 +25,6 @@ def parse_distribution(oracle_output, mutant_output):
     observed = json.loads(mutant_output)
     return expected, observed
 
-
 def align_distributions(expected, observed):
     # Ensure both distributions have the same keys
     all_keys = set(expected.keys()).union(set(observed.keys()))
@@ -36,27 +35,26 @@ def align_distributions(expected, observed):
             observed[key] = 0
     return expected, observed, all_keys
 
-
 def normalize_distribution(distribution):
     total = sum(distribution.values())
     return {k: v / total for k, v in distribution.items()}
 
-
 def compareChisquare(oracle_output, mutant_output):
 
     expected, observed = parse_distribution(oracle_output, mutant_output)
-    expected, observed, _ = align_distributions(expected, observed)
+    #expected, observed, _ = align_distributions(expected, observed)
 
+    if set(expected.keys()) != set(observed.keys()):
+        return 0
     # Add epsilon to prevent zero frequencies
-    epsilon = 1e-10
-    expected = {k: v + epsilon for k, v in expected.items()}
+    #epsilon = 1e-10
+    #expected = {k: v + epsilon for k, v in expected.items()}
     # Sorting the dictionary by keys
     expected = dict(sorted(expected.items()))
     observed = dict(sorted(observed.items()))
 
     result = chisquare(list(observed.values()), list(expected.values()))
     return result[1]  # p-value
-
 
 def getHellinger(oracle_output, mutant_output):
     expected, observed = parse_distribution(oracle_output, mutant_output)

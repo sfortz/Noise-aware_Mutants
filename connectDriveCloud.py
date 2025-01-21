@@ -54,6 +54,16 @@ def get_files(service, folder_id):
     ).execute()
     return results.get('files', [])
 
+def get_folders(service, folder_id):
+    """Retrieve files from a Google Drive folder."""
+    query = f"'{folder_id}' in parents and mimeType = 'application/vnd.google-apps.folder'"
+    results = service.files().list(
+        q=query,
+        pageSize=PAGE_SIZE_LIMIT,
+        fields="nextPageToken, files(id, name)"
+    ).execute()
+    return results.get('files', [])
+
 
 def load_pickle_content(service, file_id):
     """Load pickle data from a Google Drive file."""
