@@ -230,15 +230,13 @@ def main():
                'Fake_Sherbrooke': '10UKyz608mf_WKpKX5chIxrq-17GzdHJS',
                'Fake_Kyiv': '1dsTwcN8k0xw8HhYwwwwC3_5csMroNZde'}
 
-    folders = {'Fake_Brisbane': '1qHHcCyRLrDAN_rHshIHrPo_rxgRH1rPN'}
-
     service = authenticate_google_drive()
 
     print('====================== IDEAL THRESHOLDS =========================')
-    process_and_display(service, folders.get('Fake_Brisbane'), False)
+    #process_and_display(service, folders.get('Fake_Brisbane'), False)
 
     for folder_name, folder_id in folders.items():
-        print('\f====================== NOISY THRESHOLDS FOR {} =========================', folder_name)
+        print(f'====================== NOISY THRESHOLDS FOR {folder_name} =========================')
         process_and_display(service, folder_id, True)
 
 
