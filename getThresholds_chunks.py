@@ -194,14 +194,14 @@ def process_files(service, origin_id, isNoisy, temp_dir):
 
         # Skip already processed files
         if is_processed(filename, temp_dir):
-            print(f"Skipping already processed file: {filename}")
+            #print(f"Skipping already processed file: {filename}")
             continue
 
         if filename.endswith('.pkl'):
             pattern = r"indep_qiskit_|_output|.pkl"
             circuit_name = re.sub(pattern, "", filename)
             qubits = int(circuit_name.split('_')[1])
-            if qubits >= 8:
+            if qubits == 8:
                 try:
                     oracle_pkl = load_pickle_content(service, file_id)
 
@@ -222,8 +222,8 @@ def process_files(service, origin_id, isNoisy, temp_dir):
                     print(f"Error processing file {filename}: {str(e)}")
 
     # Merge all temporary files into a single DataFrame
-    # df_total = merge_all_temp_files(temp_dir)
-    #return Null #df_total
+    df_total = merge_all_temp_files(temp_dir)
+    return df_total
 
 
 #####
@@ -235,11 +235,10 @@ def process_and_display(service, folder_id, isNoisy, temp_dir):
         run_id = run['id']
         temp_path = os.path.join(temp_dir, run_id)
         os.makedirs(temp_path, exist_ok=True)
-        #df_run = process_files(service, run_id, isNoisy, temp_path)
-        process_files(service, run_id, isNoisy, temp_path)
-        #runs_df_list.append(df_run)
+        df_run = process_files(service, run_id, isNoisy, temp_path)
+        runs_df_list.append(df_run)
 
-    sys.exit("Runs completed, You can push the temp files! :D ")
+    #sys.exit("Runs completed, You can push the temp files! :D ")
     # Select numeric and non-numeric columns separately
     numeric_columns = runs_df_list[0].select_dtypes(include=[np.number]).columns
     non_numeric_columns = runs_df_list[0].select_dtypes(exclude=[np.number]).columns
@@ -294,7 +293,9 @@ def main():
     service = authenticate_google_drive()
 
     print('====================== IDEAL THRESHOLDS =========================')
-    #process_and_display(service, folders.get('Fake_Brisbane'), False)
+    temp_dir = "temp_results_Ideal"
+    os.makedirs(temp_dir, exist_ok=True)
+    process_and_display(service, folders.get('Fake_Brisbane'), False, temp_dir)
 
     for folder_name, folder_id in folders.items():
         print(f'====================== NOISY THRESHOLDS FOR {folder_name} =========================')
