@@ -1,10 +1,13 @@
 import io
 import os
 import pickle
+import httplib2
 
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from google_auth_httplib2 import AuthorizedHttp
+
 
 """ 
 The file token.pickle stores the user's access and refresh tokens, and is
@@ -37,12 +40,24 @@ def load_credentials():
     return creds
 
 
-def authenticate_google_drive():
-    """Authenticate and return the Google Drive service."""
-    creds = load_credentials()
-    service = build('drive', 'v3', credentials=creds)
-    return service
+#def authenticate_google_drive():
+#    """Authenticate and return the Google Drive service."""
+#    creds = load_credentials()
+#    service = build('drive', 'v3', credentials=creds)
+#   return service
 
+
+def authenticate_google_drive(timeout=1000):
+    """Authenticate and return the Google Drive service with a custom timeout."""
+    creds = load_credentials()
+    http = httplib2.Http(timeout=timeout)
+
+    #creds.authorize(http)
+    #service = build('drive', 'v3', http=http)
+
+    authorized_http = AuthorizedHttp(creds, http=http)
+    service = build('drive', 'v3', http=authorized_http)
+    return service
 
 def get_files(service, folder_id):
     """Retrieve files from a Google Drive folder."""
@@ -67,11 +82,8 @@ def get_folders(service, folder_id):
 
 def load_pickle_content(service, file_id):
     """Load pickle data from a Google Drive file."""
+    # Request file content
     request = service.files().get_media(fileId=file_id)
     file_content = io.BytesIO(request.execute())
     file_content.seek(0)
     return pickle.load(file_content)
-
-
-
-
