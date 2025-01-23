@@ -304,7 +304,7 @@ def get_tolerance_values_noisy(model, threshold):
 
 def process_files(service, origin_id, mutants_id, model, mutant):
     # Define tolerance values
-    possible_thresholds = ['A', 'I', 'N']  #, 0.8, 0.5, 0.1]
+    possible_thresholds = ['I', 'N']  #'A', 0.8, 0.5, 0.1]
     tolerance_values_ideal = get_tolerance_values_noisy(model, 'I')
     dic_noisy_tolerance = {}
     for threshold in possible_thresholds:

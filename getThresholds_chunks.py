@@ -201,7 +201,7 @@ def process_files(service, origin_id, isNoisy, temp_dir):
             pattern = r"indep_qiskit_|_output|.pkl"
             circuit_name = re.sub(pattern, "", filename)
             qubits = int(circuit_name.split('_')[1])
-            if qubits == 8:
+            if qubits < 9:
                 try:
                     oracle_pkl = load_pickle_content(service, file_id)
 
