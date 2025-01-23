@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from qiskit.quantum_info import Operator
 from connectDriveCloud import authenticate_google_drive, load_pickle_content, get_files
-from distances import fidelityCalc, traceDist, getHellinger, compareChisquare, jensenShannonDivergence
+from distances import fidelityCalc, traceDist, getHellinger, jensenShannonDivergence
 
 
 def calculate_killed_flags(ideal, noisy, tolerance_values_ideal, tolerance_values_noisy):
@@ -23,8 +23,6 @@ def calculate_killed_flags(ideal, noisy, tolerance_values_ideal, tolerance_value
     killed_flags['Killed_NT'] = noisy['trace'] > tolerance_values_noisy['trace']
     killed_flags['Killed_IH'] = ideal['hellinger'] > tolerance_values_ideal['hellinger']
     killed_flags['Killed_NH'] = noisy['hellinger'] > tolerance_values_noisy['hellinger']
-    killed_flags['Killed_IC'] = ideal['chisquare'] < tolerance_values_ideal['chisquare']
-    killed_flags['Killed_NC'] = noisy['chisquare'] < tolerance_values_noisy['chisquare']
     killed_flags['Killed_IJ'] = ideal['jensenshannon'] > tolerance_values_ideal['jensenshannon']
     killed_flags['Killed_NJ'] = noisy['jensenshannon'] > tolerance_values_noisy['jensenshannon']
     killed_flags['Killed_IE'] = ideal['expectation'] > tolerance_values_ideal['expectation']
@@ -102,9 +100,9 @@ def get_theoretical_expectation_value(density_matrix):
 
 
 def check_results(oracle_data, mutants_data, tolerance_values_ideal, tolerance_values_noisy):
-    column_names = ['Name', 'Input', 'Ideal_chisquare', 'Noisy_chisquare', 'Ideal_hellinger', 'Noisy_hellinger',
+    column_names = ['Name', 'Input', 'Ideal_hellinger', 'Noisy_hellinger',
                     'Ideal_jensenshannon', 'Noisy_jensenshannon', 'Ideal_trace', 'Noisy_trace', 'Ideal_fidelity',
-                    'Noisy_fidelity', 'Ideal_expectation', 'Noisy_expectation', 'Killed_IC', 'Killed_NC', 'Killed_IH',
+                    'Noisy_fidelity', 'Ideal_expectation', 'Noisy_expectation', 'Killed_IH',
                     'Killed_NH', 'Killed_IJ', 'Killed_NJ',
                     'Killed_IT', 'Killed_NT', 'Killed_IF', 'Killed_NF', 'Killed_IE', 'Killed_NE']
 
@@ -126,31 +124,16 @@ def check_results(oracle_data, mutants_data, tolerance_values_ideal, tolerance_v
 
             ideal_hellinger = getHellinger(theoretical_distribution, observed_ideal_distribution)
             ideal_jensenshannon = jensenShannonDivergence(theoretical_distribution, observed_ideal_distribution)
-            ideal_chisquare = 0 #compareChisquare(theoretical_distribution, observed_ideal_distribution)
 
             # Observed distribution (from Noisy_output_distribution)
             observed_noisy_distribution = mutant['Noisy_output_distribution']
 
             noisy_hellinger = getHellinger(theoretical_distribution, observed_noisy_distribution)
             noisy_jensenshannon = jensenShannonDivergence(theoretical_distribution, observed_noisy_distribution)
-            noisy_chisquare = 1 #compareChisquare(theoretical_distribution, observed_noisy_distribution)
 
             theoretical_expectation_value = get_theoretical_expectation_value(oracle_entry['Ideal_density_matrix'])
             ideal_expectation = abs(theoretical_expectation_value - mutant['Ideal_expectation_value'])
             noisy_expectation = abs(theoretical_expectation_value - mutant['Noisy_expectation_value'])
-
-            #ideal_expectation = abs(oracle_entry['Ideal_expectation_value'] - mutant['Ideal_expectation_value'])
-            #noisy_expectation = abs(oracle_entry['Ideal_expectation_value'] - mutant['Noisy_expectation_value'])
-
-            # Perform calculations
-            #ideal_chisquare = compareChisquare(oracle_entry['Ideal_output_distribution'], mutant['Ideal_output_distribution'])
-            #noisy_chisquare = compareChisquare(oracle_entry['Ideal_output_distribution'], mutant['Noisy_output_distribution'])
-
-            #ideal_hellinger = getHellinger(oracle_entry['Ideal_output_distribution'], mutant['Ideal_output_distribution'])
-            #noisy_hellinger = getHellinger(oracle_entry['Ideal_output_distribution'], mutant['Noisy_output_distribution'])
-
-            #ideal_jensenshannon = jensenShannonDivergence(oracle_entry['Ideal_output_distribution'], mutant['Ideal_output_distribution'])
-            #noisy_jensenshannon = jensenShannonDivergence(oracle_entry['Ideal_output_distribution'], mutant['Noisy_output_distribution'])
 
             ideal_fidelity = fidelityCalc(oracle_entry['Ideal_density_matrix'], mutant['Ideal_density_matrix'])
             noisy_fidelity = fidelityCalc(oracle_entry['Ideal_density_matrix'], mutant['Noisy_density_matrix'])
@@ -160,11 +143,9 @@ def check_results(oracle_data, mutants_data, tolerance_values_ideal, tolerance_v
 
             # Determine killed flags
             killed_flags = calculate_killed_flags(
-                ideal={'fidelity': ideal_fidelity, 'trace': ideal_trace, 'hellinger': ideal_hellinger,
-                       'chisquare': ideal_chisquare, 'jensenshannon': ideal_jensenshannon,
+                ideal={'fidelity': ideal_fidelity, 'trace': ideal_trace, 'hellinger': ideal_hellinger, 'jensenshannon': ideal_jensenshannon,
                        'expectation': ideal_expectation},
-                noisy={'fidelity': noisy_fidelity, 'trace': noisy_trace, 'hellinger': noisy_hellinger,
-                       'chisquare': noisy_chisquare, 'jensenshannon': noisy_jensenshannon,
+                noisy={'fidelity': noisy_fidelity, 'trace': noisy_trace, 'hellinger': noisy_hellinger, 'jensenshannon': noisy_jensenshannon,
                        'expectation': noisy_expectation},
                 tolerance_values_ideal=tolerance_values_ideal,
                 tolerance_values_noisy=tolerance_values_noisy
@@ -174,8 +155,6 @@ def check_results(oracle_data, mutants_data, tolerance_values_ideal, tolerance_v
             new_line = {
                 'Name': mutant['Name'].split('/')[-1],
                 'Input': mutant['Input'],
-                'Ideal_chisquare': ideal_chisquare,
-                'Noisy_chisquare': noisy_chisquare,
                 'Ideal_hellinger': ideal_hellinger,
                 'Noisy_hellinger': noisy_hellinger,
                 'Ideal_jensenshannon': ideal_jensenshannon,
@@ -228,7 +207,6 @@ def getModelTolerance(model):
             'trace': 0.034415871303828394,
             'hellinger': 0.2130665216337895,
             'jensenshannon': 0.19154709011416926,
-            'chisquare': 0.0,
             'expectation': 0.019239830427815005
         }
 
@@ -238,7 +216,6 @@ def getModelTolerance(model):
             'trace': 0.09087481763504617,
             'hellinger': 0.2835557485569176,
             'jensenshannon': 0.26311290831221235,
-            'chisquare': 0.0,
             'expectation': 0.032351843338062784
         }
     elif model == 'kyiv':
@@ -247,7 +224,6 @@ def getModelTolerance(model):
             'trace': 0.04045065953149715,
             'hellinger': 0.19741965571741749,
             'jensenshannon': 0.1836415632471504,
-            'chisquare': 0.0,
             'expectation': 0.0239542540495735
         }
 
@@ -261,54 +237,49 @@ def cap_value(value):
     return min(1, max(0, value))
 
 
-def get_tolerance_values_noisy(model, threshold):
+def get_tolerance_values(model, threshold):
     tolerance_values_ideal = {
         'fidelity': 1 - 1e-14,
         'trace': 1e-13,
         'hellinger': 0.04178952039843151,
         'jensenshannon': 0.04058294316372258,
-        'chisquare': 0.0,
         'expectation': 0.011574442770798709
     }
 
     # Define tolerance values
     if threshold == 'I':
-        tolerance_values_noisy = tolerance_values_ideal
+        tolerance_values = tolerance_values_ideal
     elif threshold == 'N':
-        tolerance_values_noisy = getModelTolerance(model)
+        tolerance_values = getModelTolerance(model)
+    elif threshold == 'M':
+        tolerance_values = {
+            'fidelity': 0.95,
+            'trace': 0.01,
+            'hellinger': 0.1,
+            'jensenshannon': 0.1,
+            'expectation': 0.015
+        }
+
     elif threshold == 'A':
-        tolerance_values_noisy = getModelTolerance(model)
-        tolerance_values_noisy = {
-            'fidelity': cap_value(
-                1 - ((1 - tolerance_values_noisy['fidelity']) + (1 - tolerance_values_ideal['fidelity']))),
-            'trace': cap_value(tolerance_values_noisy['trace'] + tolerance_values_ideal['trace']),
-            'hellinger': cap_value(tolerance_values_noisy['hellinger'] + tolerance_values_ideal['hellinger']),
-            'jensenshannon': cap_value(
-                tolerance_values_noisy['jensenshannon'] + tolerance_values_ideal['jensenshannon']),
-            'chisquare': cap_value(tolerance_values_noisy['chisquare'] + tolerance_values_ideal['chisquare']),
-            'expectation': cap_value(tolerance_values_noisy['expectation'] + tolerance_values_ideal['expectation'])
+        tolerance_values = {
+            'fidelity': 0.75,
+            'trace': 0.1,
+            'hellinger': 0.3,
+            'jensenshannon': 0.3,
+            'expectation': 0.05
         }
 
-    else:
-        tolerance_values_noisy = {
-            'fidelity': 1 - threshold,
-            'trace': threshold,
-            'hellinger': threshold,
-            'jensenshannon': threshold,
-            'chisquare': threshold,
-            'expectation': threshold
-        }
 
-    return tolerance_values_noisy
+    return tolerance_values
 
 
 def process_files(service, origin_id, mutants_id, model, mutant):
     # Define tolerance values
-    possible_thresholds = ['I', 'N']  #'A', 0.8, 0.5, 0.1]
-    tolerance_values_ideal = get_tolerance_values_noisy(model, 'I')
+    possible_thresholds = ['M', 'A']#,'I', 'N']  # I = Ideal, N = Noisy, M = Middle, A = Above
+    tolerance_values_ideal = get_tolerance_values(model, 'I')
     dic_noisy_tolerance = {}
     for threshold in possible_thresholds:
-        dic_noisy_tolerance[threshold] = get_tolerance_values_noisy(model, threshold)
+        dic_noisy_tolerance[threshold] = get_tolerance_values(model, threshold)
 
     origin_files = get_files(service, origin_id)
     dic_mutant_folders = get_files_id_dict(service, mutants_id)
@@ -320,8 +291,8 @@ def process_files(service, origin_id, mutants_id, model, mutant):
             try:
                 pattern = r"indep_qiskit_|_output|.pkl"
                 circuit_name = re.sub(pattern, "", filename)
-                qubits = int(circuit_name.split('_')[1])
-                if (circuit_name in ['qpeexact_3','vqe_3','wstate_2']): #(qubits == 6) & (circuit_name in ['qpeexact_6','vqe_6']):  # ae_8, qft_8, wstate_8, vqe_8, qpeexact_8, qftentangled_8
+                #qubits = int(circuit_name.split('_')[1])
+                if circuit_name:# (in ['qpeexact_3','vqe_3','wstate_2']): #(qubits == 6) & (circuit_name in ['qpeexact_6','vqe_6']):  # ae_8, qft_8, wstate_8, vqe_8, qpeexact_8, qftentangled_8
                     oracle_pkl = load_pickle_content(service, file_id)
                     if not isinstance(oracle_pkl, list):
                         print(f"Expected a list in oracle pickle file, but got {type(oracle_pkl)}.")
@@ -376,8 +347,8 @@ def process_files(service, origin_id, mutants_id, model, mutant):
 
 # If you obtain a Google authentication error, just delete the tocken.pickle file.
 def main():
-    models = ['kyiv']  #['brisbane', 'sherbrooke', 'kyiv']
-    mutants = ['normal'] #'equiv', 'normal']
+    models = ['brisbane', 'sherbrooke', 'kyiv']
+    mutants = ['equiv', 'normal']
     for model in models:
         for mutant in mutants:
             print("============================================================================================")
