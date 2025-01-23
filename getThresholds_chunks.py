@@ -148,9 +148,6 @@ def get_noisy_thresholds(oracle_data):
     return results_df
 
 
-#####
-
-
 def is_processed(filename, path):
     """Check if the file has already been processed by looking for its temp file."""
     temp_file_path = os.path.join(path, f"{filename}.tmp")
@@ -221,12 +218,6 @@ def process_files(service, origin_id, isNoisy, temp_dir):
                 except Exception as e:
                     print(f"Error processing file {filename}: {str(e)}")
 
-    # Merge all temporary files into a single DataFrame
-    df_total = merge_all_temp_files(temp_dir)
-    return df_total
-
-
-#####
 
 def process_and_display(service, folder_id, isNoisy, temp_dir):
     runs = get_folders(service, folder_id)
@@ -235,7 +226,9 @@ def process_and_display(service, folder_id, isNoisy, temp_dir):
         run_id = run['id']
         temp_path = os.path.join(temp_dir, run_id)
         os.makedirs(temp_path, exist_ok=True)
-        df_run = process_files(service, run_id, isNoisy, temp_path)
+        process_files(service, run_id, isNoisy, temp_path)
+        # Merge all temporary files into a single DataFrame
+        df_run = merge_all_temp_files(temp_dir)
         runs_df_list.append(df_run)
 
     #sys.exit("Runs completed, You can push the temp files! :D ")

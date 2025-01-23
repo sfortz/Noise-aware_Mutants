@@ -3,9 +3,11 @@ import pickle
 import re
 import sys
 
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+from qiskit.quantum_info import Operator
 from connectDriveCloud import authenticate_google_drive, load_pickle_content, get_files
 from distances import fidelityCalc, traceDist, getHellinger, compareChisquare, jensenShannonDivergence
 
@@ -30,6 +32,75 @@ def calculate_killed_flags(ideal, noisy, tolerance_values_ideal, tolerance_value
     return killed_flags
 
 
+def get_theoretical_distribution(density_matrix, nb_shots):
+    # Extract the diagonal elements (probabilities)
+    probabilities = np.real(np.diag(density_matrix.data))
+    probabilities = probabilities.copy()  # Create a writable copy
+
+    # Normalize probabilities
+    total_prob = np.sum(probabilities)
+    if total_prob > 0:
+        probabilities /= total_prob  # Normalize to ensure probabilities sum to 1
+
+    # Calculate the number of qubits from the size of the density matrix
+    num_qubits = int(np.log2(len(probabilities)))
+
+    # Generate state labels for computational basis states
+    state_labels = [format(i, f'0{num_qubits}b') for i in range(2 ** num_qubits)]
+
+    # Calculate the initial counts for each state based on the number of shots
+    initial_counts = np.array([prob * nb_shots for prob in probabilities])  # Use NumPy for easy operations
+
+    # Round counts to nearest int and convert to Python int
+    counts = [int(round(count)) for count in initial_counts]
+
+    # Ensure the total counts sum to nb_shots
+    total_counts = sum(counts)
+
+    if total_counts != nb_shots:
+        # Calculate the difference
+        difference = nb_shots - total_counts
+
+        # Calculate the adjustment needed
+        adjustment_indices = np.argsort(initial_counts - counts)[:abs(difference)]
+
+        # Adjust counts
+        if difference > 0:
+            for idx in adjustment_indices:
+                counts[idx] += 1  # Increment counts for excess shots
+        else:
+            for idx in adjustment_indices:
+                counts[idx] -= 1  # Decrement counts for excess counts
+
+    # Create a dictionary mapping states to their corresponding counts
+    count_dict = {state: int(count) for state, count in zip(state_labels, counts)}
+
+    return count_dict
+
+
+def get_theoretical_expectation_value(density_matrix):
+    # Determine the number of qubits
+    dim = density_matrix.data.shape[0]
+    num_qubits = int(np.log2(dim))
+
+    if 2 ** num_qubits != dim:
+        raise ValueError("Density matrix size must be a power of 2 (2^n x 2^n).")
+
+    # Create the multi-qubit Z operator
+    single_qubit_z = np.array([[1, 0], [0, -1]])  # Z operator for one qubit
+    z_operator = single_qubit_z  # Start with the single-qubit Z
+    for _ in range(1, num_qubits):  # Extend for multi-qubit systems
+        z_operator = np.kron(z_operator, single_qubit_z)
+
+    # Convert Z operator to Qiskit Operator
+    z_operator = Operator(z_operator)
+
+    # Compute the expectation value: Tr(rho * Z)
+    expectation_value = np.trace(density_matrix.data @ z_operator.data).real
+
+    return expectation_value
+
+
 def check_results(oracle_data, mutants_data, tolerance_values_ideal, tolerance_values_noisy):
     column_names = ['Name', 'Input', 'Ideal_chisquare', 'Noisy_chisquare', 'Ideal_hellinger', 'Noisy_hellinger',
                     'Ideal_jensenshannon', 'Noisy_jensenshannon', 'Ideal_trace', 'Noisy_trace', 'Ideal_fidelity',
@@ -47,30 +118,45 @@ def check_results(oracle_data, mutants_data, tolerance_values_ideal, tolerance_v
         if input_value in oracle_lookup:
             oracle_entry = oracle_lookup[input_value]
 
+            # Theoretical distribution
+            theoretical_distribution = get_theoretical_distribution(oracle_entry['Ideal_density_matrix'], 10000)
+
+            # Observed distribution (from Ideal_output_distribution)
+            observed_ideal_distribution = mutant['Ideal_output_distribution']
+
+            ideal_hellinger = getHellinger(theoretical_distribution, observed_ideal_distribution)
+            ideal_jensenshannon = jensenShannonDivergence(theoretical_distribution, observed_ideal_distribution)
+            ideal_chisquare = 0 #compareChisquare(theoretical_distribution, observed_ideal_distribution)
+
+            # Observed distribution (from Noisy_output_distribution)
+            observed_noisy_distribution = mutant['Noisy_output_distribution']
+
+            noisy_hellinger = getHellinger(theoretical_distribution, observed_noisy_distribution)
+            noisy_jensenshannon = jensenShannonDivergence(theoretical_distribution, observed_noisy_distribution)
+            noisy_chisquare = 1 #compareChisquare(theoretical_distribution, observed_noisy_distribution)
+
+            theoretical_expectation_value = get_theoretical_expectation_value(oracle_entry['Ideal_density_matrix'])
+            ideal_expectation = abs(theoretical_expectation_value - mutant['Ideal_expectation_value'])
+            noisy_expectation = abs(theoretical_expectation_value - mutant['Noisy_expectation_value'])
+
+            #ideal_expectation = abs(oracle_entry['Ideal_expectation_value'] - mutant['Ideal_expectation_value'])
+            #noisy_expectation = abs(oracle_entry['Ideal_expectation_value'] - mutant['Noisy_expectation_value'])
+
             # Perform calculations
-            ideal_chisquare = compareChisquare(oracle_entry['Ideal_output_distribution'],
-                                               mutant['Ideal_output_distribution'])
-            noisy_chisquare = compareChisquare(oracle_entry['Ideal_output_distribution'],
-                                               mutant['Noisy_output_distribution'])
+            #ideal_chisquare = compareChisquare(oracle_entry['Ideal_output_distribution'], mutant['Ideal_output_distribution'])
+            #noisy_chisquare = compareChisquare(oracle_entry['Ideal_output_distribution'], mutant['Noisy_output_distribution'])
 
-            ideal_hellinger = getHellinger(oracle_entry['Ideal_output_distribution'],
-                                           mutant['Ideal_output_distribution'])
-            noisy_hellinger = getHellinger(oracle_entry['Ideal_output_distribution'],
-                                           mutant['Noisy_output_distribution'])
+            #ideal_hellinger = getHellinger(oracle_entry['Ideal_output_distribution'], mutant['Ideal_output_distribution'])
+            #noisy_hellinger = getHellinger(oracle_entry['Ideal_output_distribution'], mutant['Noisy_output_distribution'])
 
-            ideal_jensenshannon = jensenShannonDivergence(oracle_entry['Ideal_output_distribution'],
-                                                          mutant['Ideal_output_distribution'])
-            noisy_jensenshannon = jensenShannonDivergence(oracle_entry['Ideal_output_distribution'],
-                                                          mutant['Noisy_output_distribution'])
+            #ideal_jensenshannon = jensenShannonDivergence(oracle_entry['Ideal_output_distribution'], mutant['Ideal_output_distribution'])
+            #noisy_jensenshannon = jensenShannonDivergence(oracle_entry['Ideal_output_distribution'], mutant['Noisy_output_distribution'])
 
             ideal_fidelity = fidelityCalc(oracle_entry['Ideal_density_matrix'], mutant['Ideal_density_matrix'])
             noisy_fidelity = fidelityCalc(oracle_entry['Ideal_density_matrix'], mutant['Noisy_density_matrix'])
 
             ideal_trace = traceDist(oracle_entry['Ideal_density_matrix'], mutant['Ideal_density_matrix'])
             noisy_trace = traceDist(oracle_entry['Ideal_density_matrix'], mutant['Noisy_density_matrix'])
-
-            ideal_expectation = abs(oracle_entry['Ideal_expectation_value'] - mutant['Ideal_expectation_value'])
-            noisy_expectation = abs(oracle_entry['Ideal_expectation_value'] - mutant['Noisy_expectation_value'])
 
             # Determine killed flags
             killed_flags = calculate_killed_flags(
@@ -138,30 +224,31 @@ def load_and_merge_files(service, folder_id):
 def getModelTolerance(model):
     if model == 'brisbane':
         tolerance_values_noisy = {
-            'fidelity': 1 - 0.9818071588272935,
-            'trace': 0.9474790361650993,
-            'hellinger': 0.9001136659697,
-            'jensenshannon': 0.7718372511093367,
-            'chisquare': 8.822528185214266e-158,
-            'expectation': 0.7070786758337857
+            'fidelity': 1 - 0.9118523593799848,
+            'trace': 0.034415871303828394,
+            'hellinger': 0.2130665216337895,
+            'jensenshannon': 0.19154709011416926,
+            'chisquare': 0.0,
+            'expectation': 0.019239830427815005
         }
+
     elif model == 'sherbrooke':
         tolerance_values_noisy = {
-            'fidelity': 1 - 0.9817918801809562,
-            'trace': 0.9165467778554671,
-            'hellinger': 0.8723835633308122,
-            'jensenshannon': 0.7525100350370049,
-            'chisquare': 3.1954543753995917e-141,
-            'expectation': 0.5896550492107876
+            'fidelity': 1 - 0.7606042378746769,
+            'trace': 0.09087481763504617,
+            'hellinger': 0.2835557485569176,
+            'jensenshannon': 0.26311290831221235,
+            'chisquare': 0.0,
+            'expectation': 0.032351843338062784
         }
     elif model == 'kyiv':
         tolerance_values_noisy = {
-            'fidelity': 1 - 0.9817973573897236,
-            'trace': 0.9134759188590066,
-            'hellinger': 0.8760278316636461,
-            'jensenshannon': 0.7549426398105366,
-            'chisquare': 5.687357104528032e-162,
-            'expectation': 0.6140893479852809
+            'fidelity': 1 - 0.9024474384739689,
+            'trace': 0.04045065953149715,
+            'hellinger': 0.19741965571741749,
+            'jensenshannon': 0.1836415632471504,
+            'chisquare': 0.0,
+            'expectation': 0.0239542540495735
         }
 
     else:
@@ -169,18 +256,21 @@ def getModelTolerance(model):
 
     return tolerance_values_noisy
 
+
 def cap_value(value):
     return min(1, max(0, value))
+
 
 def get_tolerance_values_noisy(model, threshold):
     tolerance_values_ideal = {
         'fidelity': 1 - 1e-14,
         'trace': 1e-13,
-        'hellinger': 0.13455009062719828,
-        'jensenshannon': 0.11716009455796059,
-        'chisquare': 0.318714816155845,
-        'expectation': 0
+        'hellinger': 0.04178952039843151,
+        'jensenshannon': 0.04058294316372258,
+        'chisquare': 0.0,
+        'expectation': 0.011574442770798709
     }
+
     # Define tolerance values
     if threshold == 'I':
         tolerance_values_noisy = tolerance_values_ideal
@@ -189,10 +279,12 @@ def get_tolerance_values_noisy(model, threshold):
     elif threshold == 'A':
         tolerance_values_noisy = getModelTolerance(model)
         tolerance_values_noisy = {
-            'fidelity':  cap_value(1 - ((1 - tolerance_values_noisy['fidelity']) + (1 - tolerance_values_ideal['fidelity']))),
+            'fidelity': cap_value(
+                1 - ((1 - tolerance_values_noisy['fidelity']) + (1 - tolerance_values_ideal['fidelity']))),
             'trace': cap_value(tolerance_values_noisy['trace'] + tolerance_values_ideal['trace']),
             'hellinger': cap_value(tolerance_values_noisy['hellinger'] + tolerance_values_ideal['hellinger']),
-            'jensenshannon': cap_value(tolerance_values_noisy['jensenshannon'] + tolerance_values_ideal['jensenshannon']),
+            'jensenshannon': cap_value(
+                tolerance_values_noisy['jensenshannon'] + tolerance_values_ideal['jensenshannon']),
             'chisquare': cap_value(tolerance_values_noisy['chisquare'] + tolerance_values_ideal['chisquare']),
             'expectation': cap_value(tolerance_values_noisy['expectation'] + tolerance_values_ideal['expectation'])
         }
@@ -209,19 +301,19 @@ def get_tolerance_values_noisy(model, threshold):
 
     return tolerance_values_noisy
 
+
 def process_files(service, origin_id, mutants_id, model, mutant):
     # Define tolerance values
-    possible_thresholds = ['A', 'I', 'N', 0.8, 0.5, 0.1]
+    possible_thresholds = ['I', 'N']  #'A', 0.8, 0.5, 0.1]
     tolerance_values_ideal = get_tolerance_values_noisy(model, 'I')
     dic_noisy_tolerance = {}
     for threshold in possible_thresholds:
-        os.makedirs(f'results_{model}/results_{mutant}_{threshold}', exist_ok=True)
         dic_noisy_tolerance[threshold] = get_tolerance_values_noisy(model, threshold)
 
     origin_files = get_files(service, origin_id)
     dic_mutant_folders = get_files_id_dict(service, mutants_id)
 
-    for item in tqdm(origin_files, desc="Checking results..."):
+    for item in origin_files:
         filename = item['name']
         file_id = item['id']
         if filename.endswith('.pkl'):
@@ -229,59 +321,86 @@ def process_files(service, origin_id, mutants_id, model, mutant):
                 pattern = r"indep_qiskit_|_output|.pkl"
                 circuit_name = re.sub(pattern, "", filename)
                 qubits = int(circuit_name.split('_')[1])
-                if qubits <= 7:
-                    print(circuit_name)
+                if (circuit_name in ['qpeexact_3','vqe_3','wstate_2']): #(qubits == 6) & (circuit_name in ['qpeexact_6','vqe_6']):  # ae_8, qft_8, wstate_8, vqe_8, qpeexact_8, qftentangled_8
                     oracle_pkl = load_pickle_content(service, file_id)
-                    if isinstance(oracle_pkl, list):
-                        if mutant == 'equiv':
-                            mutant_folder_id = dic_mutant_folders.get(f'selected_equivalent_mutants_{circuit_name}')
-                        else:
-                            mutant_folder_id = dic_mutant_folders.get(f'mutants_{circuit_name}')
-                        if mutant_folder_id:
-                            mutants_pkl = load_and_merge_files(service, mutant_folder_id)
-                            for threshold in possible_thresholds:
-                                tolerance_values_noisy = dic_noisy_tolerance[threshold]
-                                results_df = check_results(oracle_pkl, mutants_pkl, tolerance_values_ideal,
-                                                           tolerance_values_noisy)
-                                results_df.to_csv(f'results_{model}/results_{mutant}_{threshold}/results_{circuit_name}.csv')
-                        else:
-                            print(f"No mutant folder found for {circuit_name}")
-                    else:
-                        print(f"Pickle file should contain a List instead of a {type(oracle_pkl)}.")
+                    if not isinstance(oracle_pkl, list):
+                        print(f"Expected a list in oracle pickle file, but got {type(oracle_pkl)}.")
                         sys.exit(1)
+
+                    # Retrieve the mutant folder for the circuit
+                    if mutant == 'equiv':
+                        mutant_folder_id = dic_mutant_folders.get(f'selected_equivalent_mutants_{circuit_name}')
+                    else:
+                        mutant_folder_id = dic_mutant_folders.get(f'mutants_{circuit_name}')
+
+                    if not mutant_folder_id:
+                        print(f"No mutant folder found for {circuit_name}")
+                        sys.exit(1)
+
+                    # Process each mutant file in the folder
+                    mutants_items = get_files(service, mutant_folder_id)
+
+                    # for mutant_item in mutants_items:
+                    with tqdm(mutants_items, desc=f"Processing mutants for {circuit_name}", leave=True) as pbar:
+                        for mutant_item in pbar:
+                            mutant_file_id = mutant_item['id']
+                            mutant_filename = mutant_item['name']
+                            try:
+                                mutant_data = load_pickle_content(service, mutant_file_id)
+
+                                # Iterate over thresholds and save results
+                                for threshold in possible_thresholds:
+                                    tolerance_values_noisy = dic_noisy_tolerance[threshold]
+                                    results_df = check_results(oracle_pkl, mutant_data, tolerance_values_ideal,
+                                                               tolerance_values_noisy)
+                                    output_folder = f'results_{model}/results_{mutant}_{threshold}'
+                                    os.makedirs(output_folder, exist_ok=True)
+
+                                    # Check if file already exists to determine whether to write headers
+                                    results_csv_path = f'{output_folder}/results_{circuit_name}.csv'
+                                    write_header = not os.path.exists(results_csv_path)
+
+                                    # Append results with headers only if the file does not exist
+                                    results_df.to_csv(results_csv_path, mode='a', header=write_header, index=False)
+
+                            except pickle.UnpicklingError:
+                                print(f"Error unpickling mutant file: {mutant_filename}")
+                            except Exception as e:
+                                print(f"Error processing mutant file {mutant_filename}: {str(e)}")
+
             except pickle.UnpicklingError:
-                print(f'Error unpickling file: {filename}')
+                print(f"Error unpickling file: {filename}")
             except Exception as e:
-                print(f'Error processing file {filename}: {str(e)}')
+                print(f"Error processing file {filename}: {str(e)}")
 
 
 # If you obtain a Google authentication error, just delete the tocken.pickle file.
 def main():
-    models = ['kyiv'] #['brisbane', 'sherbrooke', 'kyiv']
-    mutants = ['normal'] #['equiv', 'normal']
+    models = ['kyiv']  #['brisbane', 'sherbrooke', 'kyiv']
+    mutants = ['normal'] #'equiv', 'normal']
     for model in models:
         for mutant in mutants:
             print("============================================================================================")
             print(f"Executing {mutant} mutants on {model} simulator")
             print("============================================================================================")
             if model == 'brisbane':
-                origin_id = "1MTTleRgnFJ2UnYmbpzZoh2ndmWBJ3YJk"
+                origin_id = "1IsrwIF2IKSYWCCHDR5oXPdF33Ml0dmRS"  # Change for Run not part of threshold definition
                 if mutant == 'equiv':
-                    all_mutants_id = "1TuXmlQAARKVeOm4nTWSJBmI500Tns4aZ"
+                    all_mutants_id = "1CsNEuLnHUwn-4fJ4fpby-NTY49W0f_vK"
                 else:
-                    all_mutants_id = "1DlLaLyxSD5c0C1MqkCDlbrFvNrNLPo3e"
+                    all_mutants_id = "1IHTG_PbpF2ayFLCEoEbEgN6tDzapsRnw"
             elif model == 'sherbrooke':
-                origin_id = "1mw2IXGwDlNYBaJ257fTWvbgn6uIFR_GE"
+                origin_id = "15xelXYFEassEnLt3IiHEL0o5-oyM0RQa"  # Change for Run not part of threshold definition
                 if mutant == 'equiv':
-                    all_mutants_id = "1LD99TCdLYlvdueVw3lFDS095LQnXHDXZ"
+                    all_mutants_id = "1sSBRuM5sSPZp9BZAGMZkmaZh0wWrsMsg"
                 else:
-                    all_mutants_id = "1O6AGfEN3jXT2wIJv8Cdm639jdBTzr2tC"
+                    all_mutants_id = "1XexEZHJyL5oGDhMCq7Tkf-yfKoGsLuK5"
             elif model == 'kyiv':
-                origin_id = "1ZIiXv5wI-YjaxKaGR4CvXvfAKft-UwWJ"
+                origin_id = "125Pd27lcQwg0S64uHZFewIAFOvO9AbJ1"  # Change for Run not part of threshold definition
                 if mutant == 'equiv':
-                    all_mutants_id = "1OsML98uRWNy-TKAQvQs-7bDGjrTne649"
+                    all_mutants_id = "1oep-q4iVAwikGnpU6XTpptpN1iezPvhL"
                 else:
-                    all_mutants_id = "1Tqrv71qeMNIYnrW0CItiifaRPZO3h6hc"
+                    all_mutants_id = "1nmXYpzDvXoJR5aZT-g_LmxrAuWe48HRJ"
             else:
                 origin_id = None
                 all_mutants_id = None
