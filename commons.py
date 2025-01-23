@@ -1,20 +1,13 @@
 import os
 
-thresholds = ['A', 'I', 'N']  #'0.1','0.5','0.8',
+thresholds = ['I', 'N']  #'0.1','0.5','0.8','A',
 hardware = ["kyiv", "brisbane", "sherbrooke"]
 mutant_types = ["equiv", "normal", "balanced"]
 output_type = {'ae': 'Dominant', 'qpeexact': 'Dominant', 'vqe': 'Dominant', 'qft': 'Diverse', 'qftentangled': 'Diverse',
                'wstate': 'Diverse'}
 
-metrics = ['C', 'H', 'J', 'T', 'F', 'E']
-#metrics = ['H', 'J', 'T', 'F', 'E']
-metric_names = ('Chisquare', 'Hellinger', 'Jensen-shannon', 'Trace', 'Fidelity', 'Expectation Values')
-#metric_names=('Hellinger', 'Jensen-shannon', 'Trace', 'Fidelity', 'Expectation Values')
-
-#metrics_names = {'H':'hellinger', 'J':'jensenshannon', 'T':'trace', 'F':'fidelity', 'E':'expectation'}
-metrics = {'C': 'chisquare', 'H': 'hellinger', 'J': 'jensenshannon', 'T': 'trace', 'F': 'fidelity',
-                 'E': 'expectation'}
-#metrics = {'C':'Chisquare', 'H':'Hellinger', 'J':'Jensen-shannon', 'T':'Trace', 'F':'Fidelity', 'E':'Expectation Values'}
+metrics = {'H': 'hellinger', 'J': 'jensenshannon', 'T': 'trace', 'F': 'fidelity', 'E': 'expectation'}
+metric_names=('Hellinger', 'Jensen-shannon', 'Trace', 'Fidelity', 'Expectation Values')
 
 table_data = {
     "Output_type": ["Dominant", "Diverse"],
@@ -29,7 +22,6 @@ tolerance_values_ideal = {
     'trace': 1e-13,
     'hellinger': 0.04178952039843151,
     'jensenshannon': 0.04058294316372258,
-    'chisquare': 0.0,
     'expectation': 0.011574442770798709
 }
 
@@ -41,7 +33,6 @@ def getModelTolerance(model):
             'trace': 0.034415871303828394,
             'hellinger': 0.2130665216337895,
             'jensenshannon': 0.19154709011416926,
-            'chisquare': 0.0,
             'expectation': 0.019239830427815005
         }
 
@@ -51,7 +42,6 @@ def getModelTolerance(model):
             'trace': 0.09087481763504617,
             'hellinger': 0.2835557485569176,
             'jensenshannon': 0.26311290831221235,
-            'chisquare': 0.0,
             'expectation': 0.032351843338062784
         }
     elif model == 'kyiv':
@@ -60,7 +50,6 @@ def getModelTolerance(model):
             'trace': 0.04045065953149715,
             'hellinger': 0.19741965571741749,
             'jensenshannon': 0.1836415632471504,
-            'chisquare': 0.0,
             'expectation': 0.0239542540495735
         }
 
