@@ -216,7 +216,7 @@ def merge_all_temp_files(path):
         circuit_name = re.sub(pattern, "", temp_file)
         qubits = int(circuit_name.split('_')[1])
 
-        if qubits < 9:
+        if qubits < 8:
             temp_file_path = os.path.join(path, temp_file)
             try:
                 with open(temp_file_path, 'rb') as f:
@@ -233,8 +233,8 @@ def process_and_display(service, folder_id, isNoisy, temp_dir):
     for run in runs:
         run_id = run['id']
         temp_path = os.path.join(temp_dir, run_id)
-        # os.makedirs(temp_path, exist_ok=True)
-        # process_files(service, run_id, isNoisy, temp_path)
+        os.makedirs(temp_path, exist_ok=True)
+        process_files(service, run_id, isNoisy, temp_path)
         # Merge all temporary files into a single DataFrame
         if os.path.isdir(temp_path):
             df_run = merge_all_temp_files(temp_path)
@@ -288,7 +288,7 @@ def process_and_display(service, folder_id, isNoisy, temp_dir):
 def main():
     # Define a directory for temporary files
 
-    folders = {'Fake_Brisbane': '1qHHcCyRLrDAN_rHshIHrPo_rxgRH1rPN',
+    folders = {#'Fake_Brisbane': '1qHHcCyRLrDAN_rHshIHrPo_rxgRH1rPN',
                'Fake_Sherbrooke': '10UKyz608mf_WKpKX5chIxrq-17GzdHJS',
                'Fake_Kyiv': '1dsTwcN8k0xw8HhYwwwwC3_5csMroNZde'}
 
@@ -296,8 +296,8 @@ def main():
 
     print('====================== IDEAL THRESHOLDS =========================')
     temp_dir = "temp_results_Ideal"
-    os.makedirs(temp_dir, exist_ok=True)
-    process_and_display(service, folders.get('Fake_Brisbane'), False, temp_dir)
+    #os.makedirs(temp_dir, exist_ok=True)
+    #process_and_display(service, folders.get('Fake_Brisbane'), False, temp_dir)
 
     for folder_name, folder_id in folders.items():
         print(f'====================== NOISY THRESHOLDS FOR {folder_name} =========================')
