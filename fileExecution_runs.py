@@ -2,23 +2,16 @@ import sys
 import os
 import pickle
 
-import pandas as pd
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp
 from qiskit_aer import AerSimulator
-from qiskit_aer.noise import NoiseModel
-from qiskit_ibm_runtime import QiskitRuntimeService
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit_ibm_runtime import EstimatorV2 as Estimator
 
-from noisemodel import get_noise_model_individual_qubits, get_noise_model_without_noise, get_noise_model_generic_qubits, get_IBM_backend_noise_model
+from noisemodel import load_noise_model
 
-
-#calibration_df = pd.read_csv("calibration_values/ibm_marrakesh_calibrations_2025-01-10T09_07_10Z.csv")
 basis_gates = ["ecr", "id", "rz", "sx", "x"] #Sherbrooke, brisbane, kyiv
-#basis_gates = ["cz", "id", "rx", "rz", "rzz", "sx", "x"] #Fez, Marrakesh, Torino
-#noise_model = get_noise_model_generic_qubits(calibration_df, basis_gates)
-noise_model = get_IBM_backend_noise_model("ibm_sherbrooke")
+noise_model = load_noise_model("ibm_brisbane_noise_model.pkl")
 noisy_simulator = AerSimulator(noise_model=noise_model)
 ideal_simulator = AerSimulator()
 
@@ -200,7 +193,7 @@ def main():
     for x in range(10):
         #new_input_dir = input_dir.replace('data/equiv_mutants/','')
         #base_output_dir = f'exec_fake_kyiv/equiv_qc/run_{x}/{new_input_dir}/'  # Define the base output directory
-        base_output_dir = f'exec_fake_sherbrooke/origin_qc/run_{x}/'
+        base_output_dir = f'exec_fake_brisbane/origin_qc/run_{x}/'
 
         # Check if the path is a directory or a file
         if os.path.isdir(input_dir):

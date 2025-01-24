@@ -1,3 +1,5 @@
+import pickle
+
 import numpy as np
 import pandas as pd
 from qiskit_aer import AerSimulator
@@ -79,9 +81,36 @@ def get_noise_model_without_noise(calibration_df, supported_gates):
 
 def get_IBM_backend_noise_model(model_name):
     # Save an IBM Quantum account.
-    service = QiskitRuntimeService(channel="ibm_quantum",token="67ae1be6477a413c62411bc6120a39ab6244f3037c3439013e07f9d2509efba39d3329f7adee6622cc6136cce7cf0dfffbeae95433f9d613a6c84b7de61e6913")
+    service = QiskitRuntimeService(channel="ibm_quantum", token="67ae1be6477a413c62411bc6120a39ab6244f3037c3439013e07f9d2509efba39d3329f7adee6622cc6136cce7cf0dfffbeae95433f9d613a6c84b7de61e6913")
 
     noisy_backend = service.backend(model_name)
     noise_model = NoiseModel.from_backend(noisy_backend)
 
+    return noise_model
+
+def save_noise_model(noise_model, file_name="noise_model.pkl"):
+    """
+    Save the noise model to a file using pickle.
+
+    Parameters:
+        noise_model (NoiseModel): The noise model to save.
+        file_name (str): The file name to save the noise model (default: "noise_model.pkl").
+    """
+    with open(file_name, "wb") as file:
+        pickle.dump(noise_model, file)
+    print(f"Noise model saved to {file_name}")
+
+def load_noise_model(file_name="noise_model.pkl"):
+    """
+    Load the noise model from a file using pickle.
+
+    Parameters:
+        file_name (str): The file name of the saved noise model (default: "noise_model.pkl").
+
+    Returns:
+        NoiseModel: The loaded noise model.
+    """
+    with open(file_name, "rb") as file:
+        noise_model = pickle.load(file)
+    print(f"Noise model loaded from {file_name}")
     return noise_model
