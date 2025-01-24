@@ -102,8 +102,8 @@ def get_ideal_thresholds(oracle_data):
         theoretical_expectation_value = get_theoretical_expectation_value(value['Ideal_density_matrix'])
         expectation = abs(theoretical_expectation_value - value['Ideal_expectation_value'])
 
-        fidelity = 0
-        trace = 0
+        fidelity = 0  # Computed in getIdealThresholds.ipynb
+        trace = 0  # Computed in getIdealThresholds.ipynb
 
         name = value['Name'].split('/')[-1]
         new_line = {'Name': name, 'Input': value['Input'], 'Chisquare': chisquare, 'Hellinger': hellinger,
@@ -288,7 +288,7 @@ def process_and_display(service, folder_id, isNoisy, temp_dir):
 def main():
     # Define a directory for temporary files
 
-    folders = {#'Fake_Brisbane': '1qHHcCyRLrDAN_rHshIHrPo_rxgRH1rPN',
+    folders = {'Fake_Brisbane': '1qHHcCyRLrDAN_rHshIHrPo_rxgRH1rPN',
                'Fake_Sherbrooke': '10UKyz608mf_WKpKX5chIxrq-17GzdHJS',
                'Fake_Kyiv': '1dsTwcN8k0xw8HhYwwwwC3_5csMroNZde'}
 
@@ -296,8 +296,8 @@ def main():
 
     print('====================== IDEAL THRESHOLDS =========================')
     temp_dir = "temp_results_Ideal"
-    #os.makedirs(temp_dir, exist_ok=True)
-    #process_and_display(service, folders.get('Fake_Brisbane'), False, temp_dir)
+    os.makedirs(temp_dir, exist_ok=True)
+    process_and_display(service, folders.get('Fake_Brisbane'), False, temp_dir)
 
     for folder_name, folder_id in folders.items():
         print(f'====================== NOISY THRESHOLDS FOR {folder_name} =========================')
