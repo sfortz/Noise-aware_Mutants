@@ -66,7 +66,9 @@ def setup_layout_and_save(fig, title, folder_name, file_name, yaxis_range=None):
         height=400,
         width=2000,
         showlegend=True,
-        yaxis_range=yaxis_range  # Set y-axis range if provided
+        yaxis_range=yaxis_range,  # Set y-axis range if provided
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)'
     )
     os.makedirs(folder_name, exist_ok=True)
     fig.write_image(f"{folder_name}/{file_name}.png")  # engine='orca')
