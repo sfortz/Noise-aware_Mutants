@@ -168,20 +168,6 @@ def load_temp_file(filename, path):
         return pickle.load(f)
 
 
-def merge_all_temp_files(path):
-    """Merge all temporary files into a single DataFrame."""
-    all_files = [f for f in os.listdir(path) if f.endswith('.tmp')]
-    data_frames = []
-    for temp_file in all_files:
-        # temp_file_path = os.path.join(path, temp_file)
-        try:
-            data = load_temp_file(temp_file, path)
-            data_frames.append(data)
-        except Exception as e:
-            print(f"Error loading temporary file {temp_file}: {str(e)}")
-    return pd.concat(data_frames, ignore_index=True) if data_frames else pd.DataFrame()
-
-
 def process_files(service, origin_id, isNoisy, temp_dir):
     origin_files = get_files(service, origin_id)
 
@@ -219,19 +205,42 @@ def process_files(service, origin_id, isNoisy, temp_dir):
                     print(f"Error processing file {filename}: {str(e)}")
 
 
+def merge_all_temp_files(path):
+    """Merge all temporary files into a single DataFrame."""
+
+    all_files = [f for f in os.listdir(path) if f.endswith('.tmp')]
+    data_frames = []
+    for temp_file in all_files:
+
+        pattern = r"indep_qiskit_|_output|.pkl.tmp"
+        circuit_name = re.sub(pattern, "", temp_file)
+        qubits = int(circuit_name.split('_')[1])
+
+        if qubits < 9:
+            temp_file_path = os.path.join(path, temp_file)
+            try:
+                with open(temp_file_path, 'rb') as f:
+                    data = pickle.load(f)
+                data_frames.append(data)
+            except Exception as e:
+                print(f"Error loading temporary file {temp_file}: {str(e)}")
+    return pd.concat(data_frames, ignore_index=True) if data_frames else pd.DataFrame()
+
+
 def process_and_display(service, folder_id, isNoisy, temp_dir):
     runs = get_folders(service, folder_id)
     runs_df_list = []
     for run in runs:
         run_id = run['id']
         temp_path = os.path.join(temp_dir, run_id)
-        os.makedirs(temp_path, exist_ok=True)
-        process_files(service, run_id, isNoisy, temp_path)
+        # os.makedirs(temp_path, exist_ok=True)
+        # process_files(service, run_id, isNoisy, temp_path)
         # Merge all temporary files into a single DataFrame
-        df_run = merge_all_temp_files(temp_dir)
-        runs_df_list.append(df_run)
+        if os.path.isdir(temp_path):
+            df_run = merge_all_temp_files(temp_path)
+            runs_df_list.append(df_run)
 
-    #sys.exit("Runs completed, You can push the temp files! :D ")
+    # sys.exit("Runs completed, You can push the temp files! :D ")
     # Select numeric and non-numeric columns separately
     numeric_columns = runs_df_list[0].select_dtypes(include=[np.number]).columns
     non_numeric_columns = runs_df_list[0].select_dtypes(exclude=[np.number]).columns
