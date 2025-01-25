@@ -72,3 +72,29 @@ def setup_layout_and_save(fig, title, folder_name, file_name, yaxis_range=None):
     )
     os.makedirs(folder_name, exist_ok=True)
     fig.write_image(f"{folder_name}/{file_name}.png")  # engine='orca')
+
+
+type_dict = {
+    "gates": int,
+    "depth": int,
+    "singlequbit_gates": int,
+    "multiqubit_gates": int,
+    "Input": str,
+    "Input_type": str,
+    "Algorithm": str,
+    "Qubits_number": int,
+    "Operator": str,
+    "Gate": str,
+    "Position": int,
+    "Qubits": int,
+    "Gate_type": str,
+    "Relative_position": str,
+    "Output_type": str,
+    "hardware": str,
+    "threshold": str,
+    "metric": str,
+    "distance": float,
+    "true_label": bool,
+    "predicted_label": bool,
+    "correctness": bool
+}
