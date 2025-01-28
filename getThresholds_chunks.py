@@ -184,7 +184,7 @@ def process_files(service, origin_id, isNoisy, temp_dir):
             pattern = r"indep_qiskit_|_output|.pkl"
             circuit_name = re.sub(pattern, "", filename)
             qubits = int(circuit_name.split('_')[1])
-            if qubits == 8:
+            if qubits <= 8:
                 try:
                     oracle_pkl = load_pickle_content(service, file_id)
 
@@ -236,9 +236,9 @@ def process_runs(service, folder_id, isNoisy, temp_dir):
         os.makedirs(temp_path, exist_ok=True)
         process_files(service, run_id, isNoisy, temp_path)
         # Merge all temporary files into a single DataFrame
-        #if os.path.isdir(temp_path):
-        #df_run = merge_all_temp_files(temp_path)
-        #runs_df_list.append(df_run)
+        if os.path.isdir(temp_path):
+            df_run = merge_all_temp_files(temp_path)
+            runs_df_list.append(df_run)
     return runs_df_list
 
 
@@ -300,14 +300,14 @@ def main():
     temp_dir = "temp_results_Ideal"
     os.makedirs(temp_dir, exist_ok=True)
     processed_runs = process_runs(service, folders.get('Fake_Brisbane'), False, temp_dir)
-    # display(processed_runs)
+    display(processed_runs)
 
     for folder_name, folder_id in folders.items():
         print(f'====================== NOISY THRESHOLDS FOR {folder_name} =========================')
         temp_dir = "temp_results_" + folder_name
         os.makedirs(temp_dir, exist_ok=True)
         processed_runs = process_runs(service, folder_id, True, temp_dir)
-        # display(processed_runs)
+        display(processed_runs)
 
 
 if __name__ == "__main__":
