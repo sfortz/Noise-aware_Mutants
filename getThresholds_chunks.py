@@ -184,7 +184,7 @@ def process_files(service, origin_id, isNoisy, temp_dir):
             pattern = r"indep_qiskit_|_output|.pkl"
             circuit_name = re.sub(pattern, "", filename)
             qubits = int(circuit_name.split('_')[1])
-            if qubits < 9:
+            if qubits == 8:
                 try:
                     oracle_pkl = load_pickle_content(service, file_id)
 
@@ -216,7 +216,7 @@ def merge_all_temp_files(path):
         circuit_name = re.sub(pattern, "", temp_file)
         qubits = int(circuit_name.split('_')[1])
 
-        if qubits < 8:
+        if qubits < 9:
             temp_file_path = os.path.join(path, temp_file)
             try:
                 with open(temp_file_path, 'rb') as f:
@@ -227,7 +227,7 @@ def merge_all_temp_files(path):
     return pd.concat(data_frames, ignore_index=True) if data_frames else pd.DataFrame()
 
 
-def process_and_display(service, folder_id, isNoisy, temp_dir):
+def process_runs(service, folder_id, isNoisy, temp_dir):
     runs = get_folders(service, folder_id)
     runs_df_list = []
     for run in runs:
@@ -236,11 +236,13 @@ def process_and_display(service, folder_id, isNoisy, temp_dir):
         os.makedirs(temp_path, exist_ok=True)
         process_files(service, run_id, isNoisy, temp_path)
         # Merge all temporary files into a single DataFrame
-        if os.path.isdir(temp_path):
-            df_run = merge_all_temp_files(temp_path)
-            runs_df_list.append(df_run)
+        #if os.path.isdir(temp_path):
+        #df_run = merge_all_temp_files(temp_path)
+        #runs_df_list.append(df_run)
+    return runs_df_list
 
-    # sys.exit("Runs completed, You can push the temp files! :D ")
+
+def display(runs_df_list):
     # Select numeric and non-numeric columns separately
     numeric_columns = runs_df_list[0].select_dtypes(include=[np.number]).columns
     non_numeric_columns = runs_df_list[0].select_dtypes(exclude=[np.number]).columns
@@ -288,22 +290,24 @@ def process_and_display(service, folder_id, isNoisy, temp_dir):
 def main():
     # Define a directory for temporary files
 
-    folders = {'Fake_Brisbane': '1qHHcCyRLrDAN_rHshIHrPo_rxgRH1rPN',
-               'Fake_Sherbrooke': '10UKyz608mf_WKpKX5chIxrq-17GzdHJS',
-               'Fake_Kyiv': '1dsTwcN8k0xw8HhYwwwwC3_5csMroNZde'}
+    folders = {'Fake_Brisbane': '1PON1weLj829TLMRqdgGDx0LJz8rt8FEb',
+               'Fake_Sherbrooke': '1a2OJ3eaJBVK3pNdneryXEYZF7nGVYiDP',
+               'Fake_Kyiv': '1LtEq3rt6v2J3xSR88maOHdgreYwuE_4L'}
 
     service = authenticate_google_drive()
 
     print('====================== IDEAL THRESHOLDS =========================')
     temp_dir = "temp_results_Ideal"
     os.makedirs(temp_dir, exist_ok=True)
-    process_and_display(service, folders.get('Fake_Brisbane'), False, temp_dir)
+    processed_runs = process_runs(service, folders.get('Fake_Brisbane'), False, temp_dir)
+    # display(processed_runs)
 
     for folder_name, folder_id in folders.items():
         print(f'====================== NOISY THRESHOLDS FOR {folder_name} =========================')
         temp_dir = "temp_results_" + folder_name
         os.makedirs(temp_dir, exist_ok=True)
-        process_and_display(service, folder_id, True, temp_dir)
+        processed_runs = process_runs(service, folder_id, True, temp_dir)
+        # display(processed_runs)
 
 
 if __name__ == "__main__":
