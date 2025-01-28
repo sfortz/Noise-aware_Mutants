@@ -20,37 +20,37 @@ table_data = {
 tolerance_values_ideal = {
     'fidelity': 1 - 1e-14,
     'trace': 1e-13,
-    'hellinger': 0.04178952039843151,
-    'jensenshannon': 0.04058294316372258,
-    'expectation': 0.011574442770798709
+    'hellinger': 0.04167558253647273,
+    'jensenshannon': 0.04046209568627424,
+    'expectation': 0.012071688887134691
 }
 
 
 def getModelTolerance(model):
     if model == 'brisbane':
         tolerance_values_noisy = {
-            'fidelity': 1 - 0.9118523593799848,
-            'trace': 0.034415871303828394,
-            'hellinger': 0.2130665216337895,
-            'jensenshannon': 0.19154709011416926,
-            'expectation': 0.019239830427815005
+            'fidelity': 0.889694852626923,
+            'trace': 0.04413922158357281,
+            'hellinger': 0.17511932212075987,
+            'jensenshannon': 0.16314623886821963,
+            'expectation': 0.021517498392612106
         }
 
     elif model == 'sherbrooke':
         tolerance_values_noisy = {
-            'fidelity': 1 - 0.7606042378746769,
-            'trace': 0.09087481763504617,
-            'hellinger': 0.2835557485569176,
-            'jensenshannon': 0.26311290831221235,
-            'expectation': 0.032351843338062784
+            'fidelity': 0.8360876866656799,
+            'trace': 0.06454239845481724,
+            'hellinger': 0.21111207949813202,
+            'jensenshannon': 0.19656798430087188,
+            'expectation': 0.022305089004287383
         }
     elif model == 'kyiv':
         tolerance_values_noisy = {
-            'fidelity': 1 - 0.9024474384739689,
-            'trace': 0.04045065953149715,
-            'hellinger': 0.19741965571741749,
-            'jensenshannon': 0.1836415632471504,
-            'expectation': 0.0239542540495735
+            'fidelity': 0.8871746464728272,
+            'trace': 0.04598758133101792,
+            'hellinger': 0.14851063146748153,
+            'jensenshannon': 0.13839484544489133,
+            'expectation': 0.017200531608979386
         }
 
     else:
