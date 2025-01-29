@@ -203,28 +203,28 @@ def load_and_merge_files(service, folder_id):
 def getModelTolerance(model):
     if model == 'brisbane':
         tolerance_values_noisy = {
-            'fidelity': 1 - 0.9118523593799848,
-            'trace': 0.034415871303828394,
-            'hellinger': 0.2130665216337895,
-            'jensenshannon': 0.19154709011416926,
-            'expectation': 0.019239830427815005
+            'fidelity': 0.88969,
+            'trace': 0.04414,
+            'hellinger': 0.17512,
+            'jensenshannon': 0.16315,
+            'expectation': 0.02152
         }
 
     elif model == 'sherbrooke':
         tolerance_values_noisy = {
-            'fidelity': 1 - 0.7606042378746769,
-            'trace': 0.09087481763504617,
-            'hellinger': 0.2835557485569176,
-            'jensenshannon': 0.26311290831221235,
-            'expectation': 0.032351843338062784
+            'fidelity': 0.83609,
+            'trace': 0.06454,
+            'hellinger': 0.21111,
+            'jensenshannon': 0.19657,
+            'expectation': 0.02231
         }
     elif model == 'kyiv':
         tolerance_values_noisy = {
-            'fidelity': 1 - 0.9024474384739689,
-            'trace': 0.04045065953149715,
-            'hellinger': 0.19741965571741749,
-            'jensenshannon': 0.1836415632471504,
-            'expectation': 0.0239542540495735
+            'fidelity': 0.88717,
+            'trace': 0.04599,
+            'hellinger': 0.14851,
+            'jensenshannon': 0.13839,
+            'expectation': 0.01720
         }
 
     else:
@@ -241,9 +241,9 @@ def get_tolerance_values(model, threshold):
     tolerance_values_ideal = {
         'fidelity': 1 - 1e-14,
         'trace': 1e-13,
-        'hellinger': 0.04178952039843151,
-        'jensenshannon': 0.04058294316372258,
-        'expectation': 0.011574442770798709
+        'hellinger': 0.04168,
+        'jensenshannon': 0.04046,
+        'expectation': 0.01207
     }
 
     # Define tolerance values
@@ -253,20 +253,20 @@ def get_tolerance_values(model, threshold):
         tolerance_values = getModelTolerance(model)
     elif threshold == 'M':
         tolerance_values = {
-            'fidelity': 0.95,
-            'trace': 0.01,
-            'hellinger': 0.1,
-            'jensenshannon': 0.1,
-            'expectation': 0.015
+            'fidelity': 0.94485,
+            'trace': 0.02207,
+            'hellinger': 0.09509,
+            'jensenshannon': 0.08943,
+            'expectation': 0.01464
         }
 
     elif threshold == 'A':
         tolerance_values = {
-            'fidelity': 0.75,
-            'trace': 0.1,
-            'hellinger': 0.3,
-            'jensenshannon': 0.3,
-            'expectation': 0.05
+            'fidelity': 0.78094,
+            'trace': 0.08661,
+            'hellinger': 0.26453,
+            'jensenshannon': 0.24553,
+            'expectation': 0.02487
         }
 
 
@@ -275,7 +275,7 @@ def get_tolerance_values(model, threshold):
 
 def process_files(service, origin_id, mutants_id, model, mutant):
     # Define tolerance values
-    possible_thresholds = ['M', 'A']#,'I', 'N']  # I = Ideal, N = Noisy, M = Middle, A = Above
+    possible_thresholds = ['I', 'N', 'M', 'A']  # I = Ideal, N = Noisy, M = Middle, A = Above
     tolerance_values_ideal = get_tolerance_values(model, 'I')
     dic_noisy_tolerance = {}
     for threshold in possible_thresholds:
@@ -293,7 +293,7 @@ def process_files(service, origin_id, mutants_id, model, mutant):
                 circuit_name = re.sub(pattern, "", filename)
                 qubits = int(circuit_name.split('_')[1])
                 #if circuit_name:# (in ['qpeexact_3','vqe_3','wstate_2']): #(qubits == 6) & (circuit_name in ['qpeexact_6','vqe_6']):  # ae_8, qft_8, wstate_8, vqe_8, qpeexact_8, qftentangled_8
-                if qubits < 7:
+                if qubits <= 8:
                     oracle_pkl = load_pickle_content(service, file_id)
                     if not isinstance(oracle_pkl, list):
                         print(f"Expected a list in oracle pickle file, but got {type(oracle_pkl)}.")
@@ -356,23 +356,23 @@ def main():
             print(f"Executing {mutant} mutants on {model} simulator")
             print("============================================================================================")
             if model == 'brisbane':
-                origin_id = "1IsrwIF2IKSYWCCHDR5oXPdF33Ml0dmRS"  # Change for Run not part of threshold definition
+                origin_id = "1HCneX79jzbIFpMeg33SUw4eMSLuIX0EK"  # Extra run folder id
                 if mutant == 'equiv':
-                    all_mutants_id = "1CsNEuLnHUwn-4fJ4fpby-NTY49W0f_vK"
+                    all_mutants_id = "1XNnFqHmF5Fv3QXNaaKfZsActRX2S3pz3"  # equiv_qc folder id
                 else:
-                    all_mutants_id = "1IHTG_PbpF2ayFLCEoEbEgN6tDzapsRnw"
+                    all_mutants_id = "1Nz8d3u_cf3HvRxSJ_e6PgYgmZCnjx5Td"  # mutant_qc folder id
             elif model == 'sherbrooke':
-                origin_id = "15xelXYFEassEnLt3IiHEL0o5-oyM0RQa"  # Change for Run not part of threshold definition
+                origin_id = "1cEU1SR50KOIfo1jTNXL3PhTZzvBKNoLZ"  # Change for Run not part of threshold definition
                 if mutant == 'equiv':
-                    all_mutants_id = "1sSBRuM5sSPZp9BZAGMZkmaZh0wWrsMsg"
+                    all_mutants_id = "1sFNMH2ky6zhMtN8xFtpwYJV7T92MSkh5"
                 else:
-                    all_mutants_id = "1XexEZHJyL5oGDhMCq7Tkf-yfKoGsLuK5"
+                    all_mutants_id = "10W0wuoWfVH0FOh2LOxFXQXAuv5PvtKoB"
             elif model == 'kyiv':
-                origin_id = "125Pd27lcQwg0S64uHZFewIAFOvO9AbJ1"  # Change for Run not part of threshold definition
+                origin_id = "1IQ8uEpPg7AxmIoW_nKEfZhAOPhdI9Itd"  # Change for Run not part of threshold definition
                 if mutant == 'equiv':
-                    all_mutants_id = "1oep-q4iVAwikGnpU6XTpptpN1iezPvhL"
+                    all_mutants_id = "1DpZSMM0aj8gP7K0XQ_weGCVRw3KltHfi"
                 else:
-                    all_mutants_id = "1nmXYpzDvXoJR5aZT-g_LmxrAuWe48HRJ"
+                    all_mutants_id = "1tpX9nl0vlus-0A5_wiDPCm0ITWZIBvoe"
             else:
                 origin_id = None
                 all_mutants_id = None
