@@ -1,6 +1,6 @@
 import os
 
-thresholds = ['I', 'N']  #'0.1','0.5','0.8','A',
+thresholds = ['I', 'N', 'A', 'M']  #'0.1','0.5','0.8','A',
 hardware = ["kyiv", "brisbane", "sherbrooke"]
 mutant_types = ["equiv", "normal", "balanced"]
 output_type = {'ae': 'Dominant', 'qpeexact': 'Dominant', 'vqe': 'Dominant', 'qft': 'Diverse', 'qftentangled': 'Diverse',
@@ -29,34 +29,69 @@ tolerance_values_ideal = {
 def getModelTolerance(model):
     if model == 'brisbane':
         tolerance_values_noisy = {
-            'fidelity': 0.889694852626923,
-            'trace': 0.04413922158357281,
-            'hellinger': 0.17511932212075987,
-            'jensenshannon': 0.16314623886821963,
-            'expectation': 0.021517498392612106
+            'fidelity': 0.88969,
+            'trace': 0.04414,
+            'hellinger': 0.17512,
+            'jensenshannon': 0.16315,
+            'expectation': 0.02152
         }
 
     elif model == 'sherbrooke':
         tolerance_values_noisy = {
-            'fidelity': 0.8360876866656799,
-            'trace': 0.06454239845481724,
-            'hellinger': 0.21111207949813202,
-            'jensenshannon': 0.19656798430087188,
-            'expectation': 0.022305089004287383
+            'fidelity': 0.83609,
+            'trace': 0.06454,
+            'hellinger': 0.21111,
+            'jensenshannon': 0.19657,
+            'expectation': 0.02231
         }
     elif model == 'kyiv':
         tolerance_values_noisy = {
-            'fidelity': 0.8871746464728272,
-            'trace': 0.04598758133101792,
-            'hellinger': 0.14851063146748153,
-            'jensenshannon': 0.13839484544489133,
-            'expectation': 0.017200531608979386
+            'fidelity': 0.88717,
+            'trace': 0.04599,
+            'hellinger': 0.14851,
+            'jensenshannon': 0.13839,
+            'expectation': 0.01720
         }
 
     else:
         tolerance_values_noisy = {}
 
     return tolerance_values_noisy
+
+
+def get_tolerance_values(model, threshold):
+    tolerance_values_ideal = {
+        'fidelity': 1 - 1e-14,
+        'trace': 1e-13,
+        'hellinger': 0.04168,
+        'jensenshannon': 0.04046,
+        'expectation': 0.01207
+    }
+
+    # Define tolerance values
+    if threshold == 'I':
+        tolerance_values = tolerance_values_ideal
+    elif threshold == 'N':
+        tolerance_values = getModelTolerance(model)
+    elif threshold == 'M':
+        tolerance_values = {
+            'fidelity': 0.94485,
+            'trace': 0.02207,
+            'hellinger': 0.09509,
+            'jensenshannon': 0.08943,
+            'expectation': 0.01464
+        }
+
+    elif threshold == 'A':
+        tolerance_values = {
+            'fidelity': 0.78094,
+            'trace': 0.08661,
+            'hellinger': 0.26453,
+            'jensenshannon': 0.24553,
+            'expectation': 0.02487
+        }
+
+    return tolerance_values
 
 
 # Helper function to set up layout and save image
@@ -93,7 +128,8 @@ type_dict = {
     "hardware": str,
     "threshold": str,
     "metric": str,
-    "distance": float,
+    "ideal_distance": float,
+    "noisy_distance": float,
     "true_label": bool,
     "predicted_label": bool,
     "correctness": bool
