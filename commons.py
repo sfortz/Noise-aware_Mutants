@@ -1,6 +1,6 @@
 import os
 
-thresholds = ['I', 'N', 'A', 'M']  #'0.1','0.5','0.8','A',
+thresholds = ['A', 'N', 'M', 'I']  #'0.1','0.5','0.8','A',
 hardware = ["kyiv", "brisbane", "sherbrooke"]
 mutant_types = ["equiv", "normal", "balanced"]
 output_type = {'ae': 'Dominant', 'qpeexact': 'Dominant', 'vqe': 'Dominant', 'qft': 'Diverse', 'qftentangled': 'Diverse',

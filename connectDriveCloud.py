@@ -47,7 +47,7 @@ def load_credentials():
 #   return service
 
 
-def authenticate_google_drive(timeout=1000):
+def authenticate_google_drive(timeout=200):
     """Authenticate and return the Google Drive service with a custom timeout."""
     creds = load_credentials()
     http = httplib2.Http(timeout=timeout)
