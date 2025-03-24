@@ -8,6 +8,8 @@ import pandas as pd
 from tqdm import tqdm
 
 from qiskit.quantum_info import Operator
+
+from commons import get_tolerance_values
 from connectDriveCloud import authenticate_google_drive, load_pickle_content, get_files
 from distances import fidelityCalc, traceDist, getHellinger, jensenShannonDivergence
 
@@ -200,78 +202,8 @@ def load_and_merge_files(service, folder_id):
     return merged_data
 
 
-def getModelTolerance(model):
-    if model == 'brisbane':
-        tolerance_values_noisy = {
-            'fidelity': 0.88969,
-            'trace': 0.04414,
-            'hellinger': 0.17512,
-            'jensenshannon': 0.16315,
-            'expectation': 0.02152
-        }
-
-    elif model == 'sherbrooke':
-        tolerance_values_noisy = {
-            'fidelity': 0.83609,
-            'trace': 0.06454,
-            'hellinger': 0.21111,
-            'jensenshannon': 0.19657,
-            'expectation': 0.02231
-        }
-    elif model == 'kyiv':
-        tolerance_values_noisy = {
-            'fidelity': 0.88717,
-            'trace': 0.04599,
-            'hellinger': 0.14851,
-            'jensenshannon': 0.13839,
-            'expectation': 0.01720
-        }
-
-    else:
-        tolerance_values_noisy = {}
-
-    return tolerance_values_noisy
-
-
 def cap_value(value):
     return min(1, max(0, value))
-
-
-def get_tolerance_values(model, threshold):
-    tolerance_values_ideal = {
-        'fidelity': 1 - 1e-14,
-        'trace': 1e-13,
-        'hellinger': 0.04168,
-        'jensenshannon': 0.04046,
-        'expectation': 0.01207
-    }
-
-    # Define tolerance values
-    if threshold == 'I':
-        tolerance_values = tolerance_values_ideal
-    elif threshold == 'N':
-        tolerance_values = getModelTolerance(model)
-    elif threshold == 'M':
-        tolerance_values = {
-            'fidelity': 0.94485,
-            'trace': 0.02207,
-            'hellinger': 0.09509,
-            'jensenshannon': 0.08943,
-            'expectation': 0.01464
-        }
-
-    elif threshold == 'A':
-        tolerance_values = {
-            'fidelity': 0.78094,
-            'trace': 0.08661,
-            'hellinger': 0.26453,
-            'jensenshannon': 0.24553,
-            'expectation': 0.02487
-        }
-
-
-    return tolerance_values
-
 
 def process_files(service, origin_id, mutants_id, model, mutant):
     # Define tolerance values
