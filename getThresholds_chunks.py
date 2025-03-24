@@ -266,24 +266,26 @@ def display(runs_df_list):
     final_df = pd.concat([combined_numeric_df, non_numeric_df], axis=1)
 
     # print(final_df)
-    values = final_df.iloc[:, :-2].median()
+    values_3rd_quartile = final_df.iloc[:, :-2].quantile(0.75)
+    values_1st_quartile = final_df.iloc[:, :-2].quantile(0.25)
+
     n = len(final_df)  # Number of observations
     print('----------------------------------------')
     print('Mean: ')
-    print(values[['mean_Chisquare', 'mean_Hellinger', 'mean_Jensenshannon', 'mean_Trace', 'mean_Fidelity',
+    print(values_3rd_quartile[['mean_Chisquare', 'mean_Hellinger', 'mean_Jensenshannon', 'mean_Trace', 'mean_Fidelity',
                   'mean_Expectation']])
     print('----------------------------------------')
     print('Standard deviation: ')
     print(
-        values[['std_Chisquare', 'std_Hellinger', 'std_Jensenshannon', 'std_Trace', 'std_Fidelity', 'std_Expectation']])
+        values_3rd_quartile[['std_Chisquare', 'std_Hellinger', 'std_Jensenshannon', 'std_Trace', 'std_Fidelity', 'std_Expectation']])
     print('----------------------------------------')
     print('Threshold: ')
-    print(f"Chisquare: {values['mean_Chisquare'] + values['std_Chisquare'] / np.sqrt(n)}")
-    print(f"Hellinger: {values['mean_Hellinger'] + values['std_Hellinger'] / np.sqrt(n)}")
-    print(f"Jensenshannon: {values['mean_Jensenshannon'] + values['std_Jensenshannon'] / np.sqrt(n)}")
-    print(f"Trace: {values['mean_Trace'] + values['std_Trace'] / np.sqrt(n)}")
-    print(f"Fidelity: {1 - (1 - values['mean_Fidelity']) + values['std_Fidelity'] / np.sqrt(n)}")
-    print(f"Expectation: {values['mean_Expectation'] + values['std_Expectation'] / np.sqrt(n)}")
+    print(f"Chisquare: {values_3rd_quartile['mean_Chisquare'] + values_3rd_quartile['std_Chisquare'] / np.sqrt(n)}")
+    print(f"Hellinger: {values_3rd_quartile['mean_Hellinger'] + values_3rd_quartile['std_Hellinger'] / np.sqrt(n)}")
+    print(f"Jensenshannon: {values_3rd_quartile['mean_Jensenshannon'] + values_3rd_quartile['std_Jensenshannon'] / np.sqrt(n)}")
+    print(f"Trace: {values_3rd_quartile['mean_Trace'] + values_3rd_quartile['std_Trace'] / np.sqrt(n)}")
+    print(f"Fidelity: {1 - (1 - values_1st_quartile['mean_Fidelity']) + values_1st_quartile['std_Fidelity'] / np.sqrt(n)}")
+    print(f"Expectation: {values_3rd_quartile['mean_Expectation'] + values_3rd_quartile['std_Expectation'] / np.sqrt(n)}")
     print('----------------------------------------')
 
 

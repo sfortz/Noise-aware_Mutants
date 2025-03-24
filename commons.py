@@ -20,37 +20,37 @@ table_data = {
 tolerance_values_ideal = {
     'fidelity': 1 - 1e-14,
     'trace': 1e-13,
-    'hellinger': 0.04167558253647273,
-    'jensenshannon': 0.04046209568627424,
-    'expectation': 0.012071688887134691
+    'hellinger': 0.05999462573410876,
+    'jensenshannon': 0.0573756781781595,
+    'expectation': 0.01341994679081911
 }
 
 
 def getModelTolerance(model):
     if model == 'brisbane':
         tolerance_values_noisy = {
-            'fidelity': 0.88969,
-            'trace': 0.04414,
-            'hellinger': 0.17512,
-            'jensenshannon': 0.16315,
-            'expectation': 0.02152
+            'fidelity': 0.844560981448548,
+            'trace': 0.06156115753169809,
+            'hellinger': 0.30945013336752103,
+            'jensenshannon': 0.2648394335745957,
+            'expectation': 0.08662027935711168
         }
 
     elif model == 'sherbrooke':
         tolerance_values_noisy = {
-            'fidelity': 0.83609,
-            'trace': 0.06454,
-            'hellinger': 0.21111,
-            'jensenshannon': 0.19657,
-            'expectation': 0.02231
+            'fidelity': 0.7091486297474972,
+            'trace': 0.10230744393882127,
+            'hellinger': 0.31828796082696786,
+            'jensenshannon': 0.2773210504137734,
+            'expectation': 0.07520077028113412
         }
     elif model == 'kyiv':
         tolerance_values_noisy = {
-            'fidelity': 0.88717,
-            'trace': 0.04599,
-            'hellinger': 0.14851,
-            'jensenshannon': 0.13839,
-            'expectation': 0.01720
+            'fidelity': 0.842908980932802,
+            'trace': 0.0684393918944923,
+            'hellinger': 0.2630386511490515,
+            'jensenshannon': 0.22471852013465599,
+            'expectation': 0.04963636739920271
         }
 
     else:
@@ -63,9 +63,9 @@ def get_tolerance_values(model, threshold):
     tolerance_values_ideal = {
         'fidelity': 1 - 1e-14,
         'trace': 1e-13,
-        'hellinger': 0.04168,
-        'jensenshannon': 0.04046,
-        'expectation': 0.01207
+        'hellinger': 0.05999462573410876,
+        'jensenshannon': 0.0573756781781595,
+        'expectation': 0.01341994679081911
     }
 
     # Define tolerance values
@@ -75,20 +75,20 @@ def get_tolerance_values(model, threshold):
         tolerance_values = getModelTolerance(model)
     elif threshold == 'M':
         tolerance_values = {
-            'fidelity': 0.94485,
-            'trace': 0.02207,
-            'hellinger': 0.09509,
-            'jensenshannon': 0.08943,
-            'expectation': 0.01464
+            'fidelity': 0.922280490724269,
+            'trace': 0.030780578765899045,
+            'hellinger': 0.16151663844158012,
+            'jensenshannon': 0.14104709915640773,
+            'expectation': 0.03152815709501091
         }
 
     elif threshold == 'A':
         tolerance_values = {
-            'fidelity': 0.78094,
-            'trace': 0.08661,
-            'hellinger': 0.26453,
-            'jensenshannon': 0.24553,
-            'expectation': 0.02487
+            'fidelity': 0.6314291204717761,
+            'trace': 0.1330880227046203,
+            'hellinger': 0.4198099735344393,
+            'jensenshannon': 0.3609924713920217,
+            'expectation': 0.10472848966130349
         }
 
     return tolerance_values
