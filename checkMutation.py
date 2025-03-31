@@ -57,7 +57,7 @@ def get_theoretical_distribution(density_matrix, nb_shots):
     # Ensure the total counts sum to nb_shots
     total_counts = sum(counts)
 
-    if total_counts != nb_shots:
+    if total_counts != nb_shots:  # TODO: Check if Qiskit can transform probabilities to shots directly.
         # Calculate the difference
         difference = nb_shots - total_counts
 
@@ -224,8 +224,8 @@ def process_files(service, origin_id, mutants_id, model, mutant):
                 pattern = r"indep_qiskit_|_output|.pkl"
                 circuit_name = re.sub(pattern, "", filename)
                 qubits = int(circuit_name.split('_')[1])
-                #if circuit_name:# (in ['qpeexact_3','vqe_3','wstate_2']): #(qubits == 6) & (circuit_name in ['qpeexact_6','vqe_6']):  # ae_8, qft_8, wstate_8, vqe_8, qpeexact_8, qftentangled_8
-                if qubits <= 8:
+                if circuit_name in ['wstate_8']: #['wstate_8']: # ae_8, qft_8, wstate_8, vqe_8, qpeexact_8, qftentangled_8
+                #if qubits == 7:
                     oracle_pkl = load_pickle_content(service, file_id)
                     if not isinstance(oracle_pkl, list):
                         print(f"Expected a list in oracle pickle file, but got {type(oracle_pkl)}.")
@@ -280,8 +280,8 @@ def process_files(service, origin_id, mutants_id, model, mutant):
 
 # If you obtain a Google authentication error, just delete the tocken.pickle file.
 def main():
-    models = ['brisbane', 'sherbrooke', 'kyiv']
-    mutants = ['equiv', 'normal']
+    models = ['brisbane'] #['brisbane', 'sherbrooke', 'kyiv']
+    mutants = ['normal'] #['equiv', 'normal']
     for model in models:
         for mutant in mutants:
             print("============================================================================================")
