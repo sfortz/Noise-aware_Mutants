@@ -1,9 +1,0 @@
-gates,depth,singlequbit_gates,multiqubit_gates,Input,Input_type,Algorithm,Qubits_number,Operator,Gate,Position,Qubits,Gate_type,Relative_position,Output_type,hardware,threshold,metric,true_label,predicted_label,ideal_distance,noisy_distance,correctness,nature
-9,7,5,4,PureState_3,PureState,qpeexact,3,Replace,cz,3,2,Multi_qubit,middle,Dominant,sherbrooke,I,T,non-equivalent,non-equivalent,1.0,0.9814578461322904,True,equivalent
-9,7,5,4,PureState_6,PureState,qpeexact,3,Replace,cz,3,2,Multi_qubit,middle,Dominant,sherbrooke,I,T,non-equivalent,non-equivalent,1.0,0.9810542266476364,True,equivalent
-9,7,5,4,PureState_3,PureState,qpeexact,3,Replace,cz,3,2,Multi_qubit,middle,Dominant,sherbrooke,N,T,non-equivalent,non-equivalent,1.0,0.9814578461322904,True,equivalent
-9,7,5,4,PureState_6,PureState,qpeexact,3,Replace,cz,3,2,Multi_qubit,middle,Dominant,sherbrooke,N,T,non-equivalent,non-equivalent,1.0,0.9810542266476364,True,equivalent
-9,7,5,4,PureState_3,PureState,qpeexact,3,Replace,cz,3,2,Multi_qubit,middle,Dominant,sherbrooke,A,T,non-equivalent,non-equivalent,1.0,0.9814578461322904,True,equivalent
-9,7,5,4,PureState_6,PureState,qpeexact,3,Replace,cz,3,2,Multi_qubit,middle,Dominant,sherbrooke,A,T,non-equivalent,non-equivalent,1.0,0.9810542266476364,True,equivalent
-9,7,5,4,PureState_3,PureState,qpeexact,3,Replace,cz,3,2,Multi_qubit,middle,Dominant,sherbrooke,M,T,non-equivalent,non-equivalent,1.0,0.9814578461322904,True,equivalent
-9,7,5,4,PureState_6,PureState,qpeexact,3,Replace,cz,3,2,Multi_qubit,middle,Dominant,sherbrooke,M,T,non-equivalent,non-equivalent,1.0,0.9810542266476364,True,equivalent
