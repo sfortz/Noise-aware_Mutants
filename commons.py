@@ -130,7 +130,7 @@ type_dict = {
     "metric": str,
     "ideal_distance": float,
     "noisy_distance": float,
-    "true_label": bool,
-    "predicted_label": bool,
+    "ideal_label": bool,
+    "noisy_label": bool,
     "correctness": bool
 }
