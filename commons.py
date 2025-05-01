@@ -9,12 +9,26 @@ output_type = {'ae': 'Dominant', 'qpeexact': 'Dominant', 'vqe': 'Dominant', 'qft
 metrics = {'H': 'hellinger', 'J': 'jensenshannon', 'T': 'trace', 'F': 'fidelity', 'E': 'expectation'}
 metric_names = {'H': 'Hellinger', 'J': 'Jensen-Shannon', 'T': 'Trace', 'F': 'Fidelity', 'E': 'Expectation Values'}
 
+hardware_names = {
+    'ideal': 'Noiseless',
+    'kyiv': 'Kyiv noise model',
+    'brisbane': 'Brisbane noise model',
+    'sherbrooke': 'Sherbrooke noise model'
+}
+
+color_map = {
+    'Noiseless': '#1f77b4',       # Blue
+    'Kyiv noise model': '#a1d99b',      # Light green
+    'Brisbane noise model': '#74c476',      # Medium green
+    'Sherbrooke noise model': '#238b45'       # Dark green
+}
+
 table_data = {
     "Output_type": ["Dominant", "Diverse"],
     "Input_type": ["PureState", "Quratest"],
     "Operator": ["Add", "Remove", "Replace"],
-    "Gate_type": ["Single_qubit", "Multi_qubit"],
-    "Relative_position": ["beginning", "pre_middle", "middle", "post_middle", "end"]
+    "Gate_type": ["Single-qubit", "Multi-qubit"],
+    "Relative_position": ["Beginning", "Pre middle", "Middle", "Post middle", "End"]
 }
 
 tolerance_values_ideal = {
@@ -95,26 +109,19 @@ def get_tolerance_values(model, threshold):
 
 
 # Helper function to set up layout and save image
-def setup_layout_and_save(fig, folder_name, file_name, yaxis_range=None):
+def setup_layout_and_save(fig, folder_name, file_name, yaxis_range=None, height=400, width=2000):
     fig.update_layout(
         #title_text=title,
-        height=400,
-        width=2000,
+        height=height,
+        width=width,
         showlegend=True,
         yaxis_range=yaxis_range,  # Set y-axis range if provided
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(color="Black")
+        font=dict(color="Black", size=25)
     )
     os.makedirs(folder_name, exist_ok=True)
     fig.write_image(f"{folder_name}/{file_name}.png")  # engine='orca')
-
-color_map = {
-    'ideal': '#1f77b4',       # Blue
-    'kyiv': '#a1d99b',      # Light green
-    'brisbane': '#74c476',      # Medium green
-    'sherbrooke': '#238b45'       # Dark green
-}
 
 type_dict = {
     "gates": int,
