@@ -110,6 +110,8 @@ def get_tolerance_values(model, threshold):
 
 # Helper function to set up layout and save image
 def setup_layout_and_save(fig, folder_name, file_name, yaxis_range=None, height=400, width=2000):
+    fig.update_xaxes(showgrid=False, zeroline=True)
+    fig.update_yaxes(showgrid=False, zeroline=True)
     fig.update_layout(
         #title_text=title,
         height=height,
