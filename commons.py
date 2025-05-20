@@ -1,6 +1,6 @@
 import os
 
-thresholds = ['A', 'N', 'M', 'I']  #'0.1','0.5','0.8','A',
+thresholds = ['I', 'M', 'N', 'A']  #'0.1','0.5','0.8','A',
 hardware = ["kyiv", "brisbane", "sherbrooke"]
 mutant_types = ["equiv", "normal", "balanced"]
 output_type = {'ae': 'Dominant', 'qpeexact': 'Dominant', 'vqe': 'Dominant', 'qft': 'Diverse', 'qftentangled': 'Diverse',
@@ -8,6 +8,8 @@ output_type = {'ae': 'Dominant', 'qpeexact': 'Dominant', 'vqe': 'Dominant', 'qft
 
 metrics = {'H': 'hellinger', 'J': 'jensenshannon', 'T': 'trace', 'F': 'fidelity', 'E': 'expectation'}
 metric_names = {'H': 'Hellinger', 'J': 'Jensen-Shannon', 'T': 'Trace', 'F': 'Fidelity', 'E': 'Expectation Values'}
+
+scores = ["Accuracy", "F1 Score", "Precision", "Recall"]
 
 hardware_names = {
     'ideal': 'Noiseless',
