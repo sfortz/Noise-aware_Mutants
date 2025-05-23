@@ -8,29 +8,8 @@ import pandas as pd
 from tqdm import tqdm
 
 from qiskit.quantum_info import Operator
-
-from commons import get_tolerance_values
 from connectDriveCloud import authenticate_google_drive, load_pickle_content, get_files
 from distances import fidelityCalc, traceDist, getHellinger, jensenShannonDivergence
-
-
-def calculate_killed_flags(ideal, noisy, tolerance_values_ideal, tolerance_values_noisy):
-    """
-    Determines the killed flags based on ideal and noisy values and tolerance values.
-    """
-    killed_flags = {}
-    killed_flags['Killed_IF'] = ideal['fidelity'] < tolerance_values_ideal['fidelity']
-    killed_flags['Killed_NF'] = noisy['fidelity'] < tolerance_values_noisy['fidelity']
-    killed_flags['Killed_IT'] = ideal['trace'] > tolerance_values_ideal['trace']
-    killed_flags['Killed_NT'] = noisy['trace'] > tolerance_values_noisy['trace']
-    killed_flags['Killed_IH'] = ideal['hellinger'] > tolerance_values_ideal['hellinger']
-    killed_flags['Killed_NH'] = noisy['hellinger'] > tolerance_values_noisy['hellinger']
-    killed_flags['Killed_IJ'] = ideal['jensenshannon'] > tolerance_values_ideal['jensenshannon']
-    killed_flags['Killed_NJ'] = noisy['jensenshannon'] > tolerance_values_noisy['jensenshannon']
-    killed_flags['Killed_IE'] = ideal['expectation'] > tolerance_values_ideal['expectation']
-    killed_flags['Killed_NE'] = noisy['expectation'] > tolerance_values_noisy['expectation']
-    return killed_flags
-
 
 def get_theoretical_distribution(density_matrix, nb_shots):
     # Extract the diagonal elements (probabilities)
@@ -101,12 +80,10 @@ def get_theoretical_expectation_value(density_matrix):
     return expectation_value
 
 
-def check_results(oracle_data, mutants_data, tolerance_values_ideal, tolerance_values_noisy):
+def check_results(oracle_data, mutants_data):
     column_names = ['Name', 'Input', 'Ideal_hellinger', 'Noisy_hellinger',
                     'Ideal_jensenshannon', 'Noisy_jensenshannon', 'Ideal_trace', 'Noisy_trace', 'Ideal_fidelity',
-                    'Noisy_fidelity', 'Ideal_expectation', 'Noisy_expectation', 'Killed_IH',
-                    'Killed_NH', 'Killed_IJ', 'Killed_NJ',
-                    'Killed_IT', 'Killed_NT', 'Killed_IF', 'Killed_NF', 'Killed_IE', 'Killed_NE']
+                    'Noisy_fidelity', 'Ideal_expectation', 'Noisy_expectation']
 
     results = []
 
@@ -143,16 +120,6 @@ def check_results(oracle_data, mutants_data, tolerance_values_ideal, tolerance_v
             ideal_trace = traceDist(oracle_entry['Ideal_density_matrix'], mutant['Ideal_density_matrix'])
             noisy_trace = traceDist(oracle_entry['Ideal_density_matrix'], mutant['Noisy_density_matrix'])
 
-            # Determine killed flags
-            killed_flags = calculate_killed_flags(
-                ideal={'fidelity': ideal_fidelity, 'trace': ideal_trace, 'hellinger': ideal_hellinger, 'jensenshannon': ideal_jensenshannon,
-                       'expectation': ideal_expectation},
-                noisy={'fidelity': noisy_fidelity, 'trace': noisy_trace, 'hellinger': noisy_hellinger, 'jensenshannon': noisy_jensenshannon,
-                       'expectation': noisy_expectation},
-                tolerance_values_ideal=tolerance_values_ideal,
-                tolerance_values_noisy=tolerance_values_noisy
-            )
-
             # Create a dictionary for the result row
             new_line = {
                 'Name': mutant['Name'].split('/')[-1],
@@ -167,7 +134,6 @@ def check_results(oracle_data, mutants_data, tolerance_values_ideal, tolerance_v
                 'Noisy_fidelity': noisy_fidelity,
                 'Ideal_expectation': ideal_expectation,
                 'Noisy_expectation': noisy_expectation,
-                **killed_flags
             }
 
             results.append(new_line)
@@ -206,12 +172,6 @@ def cap_value(value):
     return min(1, max(0, value))
 
 def process_files(service, origin_id, mutants_id, model, mutant):
-    # Define tolerance values
-    possible_thresholds = ['I', 'N', 'M', 'A']  # I = Ideal, N = Noisy, M = Middle, A = Above
-    tolerance_values_ideal = get_tolerance_values(model, 'I')
-    dic_noisy_tolerance = {}
-    for threshold in possible_thresholds:
-        dic_noisy_tolerance[threshold] = get_tolerance_values(model, threshold)
 
     origin_files = get_files(service, origin_id)
     dic_mutant_folders = get_files_id_dict(service, mutants_id)
@@ -224,8 +184,8 @@ def process_files(service, origin_id, mutants_id, model, mutant):
                 pattern = r"indep_qiskit_|_output|.pkl"
                 circuit_name = re.sub(pattern, "", filename)
                 qubits = int(circuit_name.split('_')[1])
-                if circuit_name in ['wstate_8']: #['wstate_8']: # ae_8, qft_8, wstate_8, vqe_8, qpeexact_8, qftentangled_8
-                #if qubits == 7:
+                #if circuit_name in ['wstate_8']: #['wstate_8']: # ae_8, qft_8, wstate_8, vqe_8, qpeexact_8, qftentangled_8
+                if qubits == 8:
                     oracle_pkl = load_pickle_content(service, file_id)
                     if not isinstance(oracle_pkl, list):
                         print(f"Expected a list in oracle pickle file, but got {type(oracle_pkl)}.")
@@ -252,20 +212,16 @@ def process_files(service, origin_id, mutants_id, model, mutant):
                             try:
                                 mutant_data = load_pickle_content(service, mutant_file_id)
 
-                                # Iterate over thresholds and save results
-                                for threshold in possible_thresholds:
-                                    tolerance_values_noisy = dic_noisy_tolerance[threshold]
-                                    results_df = check_results(oracle_pkl, mutant_data, tolerance_values_ideal,
-                                                               tolerance_values_noisy)
-                                    output_folder = f'results_{model}/results_{mutant}_{threshold}'
-                                    os.makedirs(output_folder, exist_ok=True)
+                                results_df = check_results(oracle_pkl, mutant_data)
+                                output_folder = f'results_{model}/results_{mutant}'
+                                os.makedirs(output_folder, exist_ok=True)
 
-                                    # Check if file already exists to determine whether to write headers
-                                    results_csv_path = f'{output_folder}/results_{circuit_name}.csv'
-                                    write_header = not os.path.exists(results_csv_path)
+                                # Check if file already exists to determine whether to write headers
+                                results_csv_path = f'{output_folder}/results_{circuit_name}.csv'
+                                write_header = not os.path.exists(results_csv_path)
 
-                                    # Append results with headers only if the file does not exist
-                                    results_df.to_csv(results_csv_path, mode='a', header=write_header, index=False)
+                                # Append results with headers only if the file does not exist
+                                results_df.to_csv(results_csv_path, mode='a', header=write_header, index=False)
 
                             except pickle.UnpicklingError:
                                 print(f"Error unpickling mutant file: {mutant_filename}")
@@ -281,7 +237,7 @@ def process_files(service, origin_id, mutants_id, model, mutant):
 # If you obtain a Google authentication error, just delete the tocken.pickle file.
 def main():
     models = ['brisbane'] #['brisbane', 'sherbrooke', 'kyiv']
-    mutants = ['normal'] #['equiv', 'normal']
+    mutants = ['normal'] #, 'normal'] #['equiv', 'normal']
     for model in models:
         for mutant in mutants:
             print("============================================================================================")
