@@ -167,10 +167,6 @@ def load_and_merge_files(service, folder_id):
 
     return merged_data
 
-
-def cap_value(value):
-    return min(1, max(0, value))
-
 def process_files(service, origin_id, mutants_id, model, mutant):
 
     origin_files = get_files(service, origin_id)
@@ -184,8 +180,8 @@ def process_files(service, origin_id, mutants_id, model, mutant):
                 pattern = r"indep_qiskit_|_output|.pkl"
                 circuit_name = re.sub(pattern, "", filename)
                 qubits = int(circuit_name.split('_')[1])
-                #if circuit_name in ['wstate_8']: #['wstate_8']: # ae_8, qft_8, wstate_8, vqe_8, qpeexact_8, qftentangled_8
-                if qubits == 8:
+                #if circuit_name in ['ae_8', 'wstate_8', 'vqe_8', 'qft_8', 'qpeexact_8']: # ae_8, qft_8, wstate_8, vqe_8, qpeexact_8, qftentangled_8
+                if qubits <= 3:
                     oracle_pkl = load_pickle_content(service, file_id)
                     if not isinstance(oracle_pkl, list):
                         print(f"Expected a list in oracle pickle file, but got {type(oracle_pkl)}.")
@@ -213,7 +209,7 @@ def process_files(service, origin_id, mutants_id, model, mutant):
                                 mutant_data = load_pickle_content(service, mutant_file_id)
 
                                 results_df = check_results(oracle_pkl, mutant_data)
-                                output_folder = f'results_{model}/results_{mutant}'
+                                output_folder = f'results/distances/{model}_{mutant}'
                                 os.makedirs(output_folder, exist_ok=True)
 
                                 # Check if file already exists to determine whether to write headers
@@ -236,8 +232,8 @@ def process_files(service, origin_id, mutants_id, model, mutant):
 
 # If you obtain a Google authentication error, just delete the tocken.pickle file.
 def main():
-    models = ['brisbane'] #['brisbane', 'sherbrooke', 'kyiv']
-    mutants = ['normal'] #, 'normal'] #['equiv', 'normal']
+    models = ['brisbane', 'sherbrooke', 'kyiv'] #['brisbane', 'sherbrooke', 'kyiv']
+    mutants = ['equiv', 'normal'] #['equiv', 'normal']
     for model in models:
         for mutant in mutants:
             print("============================================================================================")
