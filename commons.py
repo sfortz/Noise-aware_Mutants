@@ -33,16 +33,7 @@ table_data = {
     "Relative_position": ["Beginning", "Pre middle", "Middle", "Post middle", "End"]
 }
 
-tolerance_values_ideal = {
-    'fidelity': 1 - 1e-14,
-    'trace': 1e-13,
-    'hellinger': 0.05999462573410876,
-    'jensenshannon': 0.0573756781781595,
-    'expectation': 0.01341994679081911
-}
-
-
-def getModelTolerance(model):
+def _getModelTolerance(model):
     if model == 'brisbane':
         tolerance_values_noisy = {
             'fidelity': 0.844560981448548,
@@ -75,20 +66,21 @@ def getModelTolerance(model):
     return tolerance_values_noisy
 
 
-def get_tolerance_values(model, threshold):
-    tolerance_values_ideal = {
+def get_tolerance_values(threshold, model=None):
+
+    # Define tolerance values
+    if threshold == 'I':
+        tolerance_values = {
         'fidelity': 1 - 1e-14,
         'trace': 1e-13,
         'hellinger': 0.05999462573410876,
         'jensenshannon': 0.0573756781781595,
         'expectation': 0.01341994679081911
     }
-
-    # Define tolerance values
-    if threshold == 'I':
-        tolerance_values = tolerance_values_ideal
     elif threshold == 'N':
-        tolerance_values = getModelTolerance(model)
+        if model == None:
+            raise ValueError("For threshold 'N', the 'model' parameter must be specified.")
+        tolerance_values = _getModelTolerance(model)
     elif threshold == 'M':
         tolerance_values = {
             'fidelity': 0.922280490724269,
@@ -106,6 +98,8 @@ def get_tolerance_values(model, threshold):
             'jensenshannon': 0.3609924713920217,
             'expectation': 0.10472848966130349
         }
+    else:
+        raise ValueError(f"Invalid threshold: {threshold}. Must be one of {thresholds}")
 
     return tolerance_values
 
@@ -122,6 +116,7 @@ def setup_layout_and_save(fig, folder_name, file_name, yaxis_range=None, height=
         yaxis_range=yaxis_range,  # Set y-axis range if provided
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
+        #font=dict(color="White", size=25)
         font=dict(color="Black", size=25)
     )
     os.makedirs(folder_name, exist_ok=True)
