@@ -239,7 +239,7 @@ def process_runs(service, folder_id, isNoisy, temp_dir):
     return runs_df_list
 
 
-def display(runs_df_list):
+def display(runs_df_list, quantile_percentage):
     # Select numeric and non-numeric columns separately
     numeric_columns = runs_df_list[0].select_dtypes(include=[np.number]).columns
     non_numeric_columns = runs_df_list[0].select_dtypes(exclude=[np.number]).columns
@@ -263,25 +263,25 @@ def display(runs_df_list):
     final_df = pd.concat([combined_numeric_df, non_numeric_df], axis=1)
 
     # print(final_df)
-    values_3rd_quartile = final_df.iloc[:, :-2].quantile(0.75)
-    values_1st_quartile = final_df.iloc[:, :-2].quantile(0.25)
+    values_quantile = final_df.iloc[:, :-2].quantile(quantile_percentage)
+    values_opposite_quantile = final_df.iloc[:, :-2].quantile(1-quantile_percentage)
 
     n = len(final_df)  # Number of observations
     print('----------------------------------------')
     print('Mean: ')
-    print(values_3rd_quartile[['mean_Hellinger', 'mean_Jensenshannon', 'mean_Trace', 'mean_Fidelity',
+    print(values_quantile[['mean_Hellinger', 'mean_Jensenshannon', 'mean_Trace', 'mean_Fidelity',
                   'mean_Expectation']])
     print('----------------------------------------')
     print('Standard deviation: ')
     print(
-        values_3rd_quartile[['std_Hellinger', 'std_Jensenshannon', 'std_Trace', 'std_Fidelity', 'std_Expectation']])
+        values_quantile[['std_Hellinger', 'std_Jensenshannon', 'std_Trace', 'std_Fidelity', 'std_Expectation']])
     print('----------------------------------------')
     print('Threshold: ')
-    print(f"Hellinger: {values_3rd_quartile['mean_Hellinger'] + values_3rd_quartile['std_Hellinger'] / np.sqrt(n)}")
-    print(f"Jensenshannon: {values_3rd_quartile['mean_Jensenshannon'] + values_3rd_quartile['std_Jensenshannon'] / np.sqrt(n)}")
-    print(f"Trace: {values_3rd_quartile['mean_Trace'] + values_3rd_quartile['std_Trace'] / np.sqrt(n)}")
-    print(f"Fidelity: {1 - (1 - values_1st_quartile['mean_Fidelity']) + values_1st_quartile['std_Fidelity'] / np.sqrt(n)}")
-    print(f"Expectation: {values_3rd_quartile['mean_Expectation'] + values_3rd_quartile['std_Expectation'] / np.sqrt(n)}")
+    print(f"Hellinger: {values_quantile['mean_Hellinger'] + values_quantile['std_Hellinger'] / np.sqrt(n)}")
+    print(f"Jensenshannon: {values_quantile['mean_Jensenshannon'] + values_quantile['std_Jensenshannon'] / np.sqrt(n)}")
+    print(f"Trace: {values_quantile['mean_Trace'] + values_quantile['std_Trace'] / np.sqrt(n)}")
+    print(f"Fidelity: {1 - (1 - values_opposite_quantile['mean_Fidelity']) + values_opposite_quantile['std_Fidelity'] / np.sqrt(n)}")
+    print(f"Expectation: {values_quantile['mean_Expectation'] + values_quantile['std_Expectation'] / np.sqrt(n)}")
     print('----------------------------------------')
 
 
@@ -294,18 +294,20 @@ def main():
 
     service = authenticate_google_drive()
 
+    quantile = 0.75
+
     print('====================== IDEAL THRESHOLDS =========================')
     temp_dir = "results_original_30_runs/results_Ideal"
     os.makedirs(temp_dir, exist_ok=True)
     processed_runs = process_runs(service, folders.get('Brisbane'), False, temp_dir)
-    display(processed_runs)
+    display(processed_runs, quantile_percentage=quantile)
 
     for folder_name, folder_id in folders.items():
         print(f'====================== NOISY THRESHOLDS FOR {folder_name} =========================')
         temp_dir = "results_original_30_runs/results_" + folder_name
         os.makedirs(temp_dir, exist_ok=True)
         processed_runs = process_runs(service, folder_id, True, temp_dir)
-        display(processed_runs)
+        display(processed_runs, quantile_percentage=quantile)
 
 
 if __name__ == "__main__":
