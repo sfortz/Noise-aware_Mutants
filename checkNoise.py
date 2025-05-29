@@ -178,9 +178,10 @@ def process_files(service, dic_data_folder, output_folder):
             if filename.endswith('.pkl'):
                 try:
                     pattern = r"indep_qiskit_|_output|.pkl"
-                    circuit_name = re.sub(pattern, "", filename)
-                    qubits = int(circuit_name.split('_')[1])
-                    #if circuit_name:# (in ['qpeexact_3','vqe_3','wstate_2']): #(qubits == 6) & (circuit_name in ['qpeexact_6','vqe_6']):  # ae_8, qft_8, wstate_8, vqe_8, qpeexact_8, qftentangled_8
+                    full_circuit_name = re.sub(pattern, "", filename)
+                    qubits = int(full_circuit_name.split('_')[1])
+                    circuit_name = full_circuit_name.split('_')[0] + "_" + full_circuit_name.split('_')[1]
+                    #if circuit_name in ['vqe_8']:  # ae_8, qft_8, wstate_8, vqe_8, qpeexact_8, qftentangled_8
                     if qubits <= 8:
                         data_pkl = load_pickle_content(service, file_id)
                         if not isinstance(data_pkl, list):
@@ -226,7 +227,7 @@ def main():
             origin_id = None
         service = authenticate_google_drive()
         dic_data_folder = get_files(service, origin_id)
-        output_folder = f'results_TEST/results_{origin_name}'
+        output_folder = f'results_noise_analysis/results_{origin_name}'
         process_files(service, dic_data_folder, output_folder)
 
         for mutant in mutants:
@@ -263,7 +264,7 @@ def main():
                 # Process each mutant file in the folder
                 print(f"Processing mutant {mutant_folder_name}")
                 dic_data_folder = get_files(service, mutant_folder_id)
-                output_folder = f'results_TEST/results_{origin_name}/{mutant_folder_id}'
+                output_folder = f'results_noise_analysis/results_{origin_name}/{mutant_folder_id}'
                 process_files(service, dic_data_folder, output_folder)
 
 
