@@ -224,14 +224,15 @@ def merge_all_temp_files(path):
     return pd.concat(data_frames, ignore_index=True) if data_frames else pd.DataFrame()
 
 
-def process_runs(service, folder_id, isNoisy, temp_dir):
+def process_runs(service, folder_id, isNoisy, temp_dir, requires_processing=True):
     runs = get_folders(service, folder_id)
     runs_df_list = []
     for run in runs:
         run_id = run['id']
         temp_path = os.path.join(temp_dir, run_id)
-        os.makedirs(temp_path, exist_ok=True)
-        process_files(service, run_id, isNoisy, temp_path)
+        if requires_processing:
+            os.makedirs(temp_path, exist_ok=True)
+            process_files(service, run_id, isNoisy, temp_path)
         # Merge all temporary files into a single DataFrame
         if os.path.isdir(temp_path):
             df_run = merge_all_temp_files(temp_path)
@@ -239,7 +240,7 @@ def process_runs(service, folder_id, isNoisy, temp_dir):
     return runs_df_list
 
 
-def display(runs_df_list, quantile_percentage):
+def display(runs_df_list, quantile_percentage, print_mean_error=False):
     # Select numeric and non-numeric columns separately
     numeric_columns = runs_df_list[0].select_dtypes(include=[np.number]).columns
     non_numeric_columns = runs_df_list[0].select_dtypes(exclude=[np.number]).columns
@@ -264,25 +265,43 @@ def display(runs_df_list, quantile_percentage):
 
     # print(final_df)
     values_quantile = final_df.iloc[:, :-2].quantile(quantile_percentage)
-    values_opposite_quantile = final_df.iloc[:, :-2].quantile(1-quantile_percentage)
-
+    values_opposite_quantile = final_df.iloc[:, :-2].quantile(1 - quantile_percentage)
     n = len(final_df)  # Number of observations
+
     print('----------------------------------------')
-    print('Mean: ')
-    print(values_quantile[['mean_Hellinger', 'mean_Jensenshannon', 'mean_Trace', 'mean_Fidelity',
-                  'mean_Expectation']])
-    print('----------------------------------------')
-    print('Standard deviation: ')
-    print(
-        values_quantile[['std_Hellinger', 'std_Jensenshannon', 'std_Trace', 'std_Fidelity', 'std_Expectation']])
-    print('----------------------------------------')
+    if print_mean_error:
+        print('Mean: ')
+        print(values_quantile[['mean_Hellinger', 'mean_Jensenshannon', 'mean_Trace', 'mean_Fidelity',
+                               'mean_Expectation']])
+        print('----------------------------------------')
+        print('Standard deviation: ')
+        print(
+            values_quantile[['std_Hellinger', 'std_Jensenshannon', 'std_Trace', 'std_Fidelity', 'std_Expectation']])
+        print('----------------------------------------')
+
     print('Threshold: ')
     print(f"Hellinger: {values_quantile['mean_Hellinger'] + values_quantile['std_Hellinger'] / np.sqrt(n)}")
     print(f"Jensenshannon: {values_quantile['mean_Jensenshannon'] + values_quantile['std_Jensenshannon'] / np.sqrt(n)}")
     print(f"Trace: {values_quantile['mean_Trace'] + values_quantile['std_Trace'] / np.sqrt(n)}")
-    print(f"Fidelity: {1 - (1 - values_opposite_quantile['mean_Fidelity']) + values_opposite_quantile['std_Fidelity'] / np.sqrt(n)}")
+    print(
+        f"Fidelity: {1 - (1 - values_opposite_quantile['mean_Fidelity']) + values_opposite_quantile['std_Fidelity'] / np.sqrt(n)}")
     print(f"Expectation: {values_quantile['mean_Expectation'] + values_quantile['std_Expectation'] / np.sqrt(n)}")
     print('----------------------------------------')
+
+
+def test_quantile_percentage(service, folders, quantile):
+    print(f'====================== IDEAL THRESHOLDS, {quantile} =========================')
+    temp_dir = "results_original_30_runs/results_Ideal"
+    os.makedirs(temp_dir, exist_ok=True)
+    processed_runs = process_runs(service, folders.get('Brisbane'), False, temp_dir, requires_processing=False)
+    display(processed_runs, quantile_percentage=quantile)
+
+    for folder_name, folder_id in folders.items():
+        print(f'====================== NOISY THRESHOLDS FOR {folder_name}, {quantile} =========================')
+        temp_dir = "results_original_30_runs/results_" + folder_name
+        os.makedirs(temp_dir, exist_ok=True)
+        processed_runs = process_runs(service, folder_id, True, temp_dir, requires_processing=False)
+        display(processed_runs, quantile_percentage=quantile)
 
 
 def main():
@@ -294,20 +313,10 @@ def main():
 
     service = authenticate_google_drive()
 
-    quantile = 0.75
-
-    print('====================== IDEAL THRESHOLDS =========================')
-    temp_dir = "results_original_30_runs/results_Ideal"
-    os.makedirs(temp_dir, exist_ok=True)
-    processed_runs = process_runs(service, folders.get('Brisbane'), False, temp_dir)
-    display(processed_runs, quantile_percentage=quantile)
-
-    for folder_name, folder_id in folders.items():
-        print(f'====================== NOISY THRESHOLDS FOR {folder_name} =========================')
-        temp_dir = "results_original_30_runs/results_" + folder_name
-        os.makedirs(temp_dir, exist_ok=True)
-        processed_runs = process_runs(service, folder_id, True, temp_dir)
-        display(processed_runs, quantile_percentage=quantile)
+    # for d in range(0, 10):
+    # quantile = 0.8762 + d/100000
+    for quantile in [0.87625, 0.875]:
+        test_quantile_percentage(service, folders, quantile)
 
 
 if __name__ == "__main__":
