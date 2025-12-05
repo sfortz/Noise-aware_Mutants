@@ -6,8 +6,10 @@ mutant_types = ["equiv", "normal", "balanced"]
 output_type = {'ae': 'Dominant', 'qpeexact': 'Dominant', 'vqe': 'Dominant', 'qft': 'Diverse', 'qftentangled': 'Diverse',
                'wstate': 'Diverse'}
 
-metrics = {'H': 'hellinger', 'J': 'jensenshannon', 'T': 'trace', 'F': 'fidelity', 'E': 'expectation'}
-metric_names = {'H': 'Hellinger', 'J': 'Jensen-Shannon', 'T': 'Trace', 'F': 'Fidelity', 'E': 'Expectation Values'}
+#metrics = {'H': 'hellinger', 'J': 'jensenshannon', 'T': 'trace', 'F': 'fidelity', 'E': 'expectation'}
+#metric_names = {'H': 'Hellinger', 'J': 'Jensen-Shannon', 'T': 'Trace', 'F': 'Fidelity', 'E': 'Expectation Values'}
+metrics = {'T': 'trace', 'F': 'fidelity', 'H': 'hellinger', 'J': 'jensenshannon', 'E': 'expectation'}
+metric_names = {'T': 'Trace', 'F': 'Fidelity', 'H': 'Hellinger', 'J': 'Jensen-Shannon', 'E': 'Expectation Values'}
 
 scores = ["Accuracy", "F1 Score", "Precision", "Recall"]
 
