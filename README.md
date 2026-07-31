@@ -38,8 +38,7 @@ This step generates the main execution data, which cannot be stored in the repos
 - `results_noise_analysis/` — Results of the executions under noise.
 - `results_original_30_runs/` — Execution outputs of the origin QC used when calculating thresholds.
 - `noise_models_24_01_2025_1630/` — Configurations of the IBM noise models used.
-- [All mutants selected](https://doi.org/10.5281/zenodo.21720539)
-- [Raw execution results all mutants](https://doi.org/10.5281/zenodo.21720539)
+- The Raw execution results all mutants can be obtained from an external [data source](https://zenodo.org/communities/robust-mutation-analysis-of-quantum-programs-under-noise)
 
 ## Requirements
 - Required packages listed in `requirements.txt`
